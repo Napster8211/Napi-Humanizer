@@ -1,0 +1,18 @@
+# NapsterTec Text Intelligence Engine Dependencies
+
+# Web framework and WSGI
+flask>=3.0.0
+werkzeug>=3.0.0
+jinja2>=3.1.0
+waitress>=3.0.0
+
+# HTTP and provider connectivity
+httpx>=0.27.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Data validation
+pydantic>=2.5.0
+
+# Testing and development
+pytest>=8.0.0

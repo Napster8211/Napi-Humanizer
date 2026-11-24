@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NapsterTec Text Intelligence Engine</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand">
+                <span class="brand-logo">⚡</span>
+                <div class="brand-text">
+                    <h1>NapsterTec Text Intelligence</h1>
+                    <span class="tagline">LLM-Assisted Editorial Refinement & Writing Workspace</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button type="button" id="historyModalBtn" class="btn-sm">📜 Session History (<span id="historyCount">0</span>)</button>
+                <button type="button" id="styleProfileBtn" class="btn-sm">🎨 Style Profile</button>
+                <div class="env-badge" id="envBadge">
+                    <span class="badge-dot"></span>
+                    <span id="envStatusText">Provider: {{ llm_provider }}</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Control Bar -->
+        <section class="control-panel card" aria-label="Editing Controls">
+            <div class="control-row">
+                <div class="control-group">
+                    <label for="modeSelect">Editing Mode</label>
+                    <select id="modeSelect" class="form-select">
+                        <option value="proofread" selected>Proofread (Correct errors, keep voice)</option>
+                        <option value="clarity">Clarity (Untangle complex wording)</option>
+                        <option value="natural">Natural / Fluent (Smooth rhythm & flow)</option>
+                        <option value="professional">Professional (Executive business register)</option>
+                        <option value="academic">Academic (Precise, formal, keep citations)</option>
+                        <option value="conversational">Conversational (Warm & approachable)</option>
+                        <option value="concise">Concise (Cut filler & redundancy)</option>
+                        <option value="simplify">Simplify (Plain language explanation)</option>
+                        <option value="custom">Custom (Follow user instructions)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="intensitySelect">Editing Intensity</label>
+                    <select id="intensitySelect" class="form-select">
+                        <option value="light">Light (Targeted minimal polish)</option>
+                        <option value="balanced" selected>Balanced (Standard editorial polish)</option>
+                        <option value="substantial">Substantial (Comprehensive rephrasing)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="toneInput">Tone (Optional)</label>
+                    <input type="text" id="toneInput" class="form-input" placeholder="e.g. Authoritative, Empathetic">
+                </div>
+
+                <div class="control-group">
+                    <label for="audienceInput">Audience (Optional)</label>
+                    <input type="text" id="audienceInput" class="form-input" placeholder="e.g. Executives, General public">
+                </div>
+            </div>
+
+            <!-- Custom Instructions Collapsible -->
+            <div class="custom-instructions-container" id="customInstructionsWrapper">
+                <label for="customInstructions">Custom Editorial Instructions (Optional)</label>
+                <input type="text" id="customInstructions" class="form-input" placeholder="e.g. Emphasize sustainability, retain bullet points">
+            </div>
+
+            <div class="action-row">
+                <div class="action-left">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="streamCheckbox" checked>
+                        <span>Stream response (SSE)</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="fallbackCheckbox" checked>
+                        <span>Allow local deterministic fallback if provider is unavailable</span>
+                    </label>
+                </div>
+                <div class="action-buttons">
+                    <button type="button" id="analyzeBtn" class="btn btn-secondary">Analyze Metrics</button>
+                    <button type="button" id="refineBtn" class="btn btn-primary">
+                        <span id="refineBtnSpinner" class="spinner hidden"></span>
+                        <span id="refineBtnText">Refine Text</span>
+                    </button>
+                    <button type="button" id="cancelBtn" class="btn btn-danger hidden">Cancel</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Notification Banner -->
+        <div id="alertBox" class="alert-box hidden" role="alert">
+            <span id="alertIcon" class="alert-icon">ℹ️</span>
+            <span id="alertMessage" class="alert-message"></span>
+            <button type="button" id="alertCloseBtn" class="alert-close" aria-label="Close alert">&times;</button>
+        </div>
+
+        <!-- Selection Banner (Shown when user selects text) -->
+        <div id="selectionBanner" class="selection-banner hidden">
+            <span>✂️ Active Selection: <strong id="selectionLength">0</strong> characters selected. Editing will apply <em>only</em> to this excerpt.</span>
+            <button type="button" id="clearSelectionBtn" class="btn-sm">Edit Full Document Instead</button>
+        </div>
+
+        <!-- Warnings Container -->
+        <div id="warningsBox" class="warnings-box hidden">
+            <h4>Integrity & Protected Span Notices:</h4>
+            <ul id="warningsList"></ul>
+        </div>
+
+        <!-- Editor Workspace (Side-by-side) -->
+        <section class="workspace-grid" aria-label="Text Workspace">
+            <!-- Left Pane: Original Text -->
+            <div class="editor-pane card">
+                <div class="pane-header">
+                    <div class="pane-title">
+                        <h3>Original Text</h3>
+                        <span id="originalCounts" class="counts-badge">0 words | 0 chars</span>
+                        <span id="detectedLangBadge" class="lang-badge">Lang: EN</span>
+                    </div>
+                    <div class="pane-actions">
+                        <button type="button" id="sampleBtn" class="btn-sm">Load Sample</button>
+                        <button type="button" id="clearBtn" class="btn-sm">Clear</button>
+                    </div>
+                </div>
+                <div class="pane-body">
+                    <textarea id="originalText" class="editor-textarea" placeholder="Paste or type text to refine..." maxlength="{{ max_input_chars }}"></textarea>
+                </div>
+            </div>
+
+            <!-- Right Pane: Revised Text & Diff -->
+            <div class="editor-pane card">
+                <div class="pane-header">
+                    <div class="pane-title">
+                        <h3>Revised Text</h3>
+                        <span id="revisedCounts" class="counts-badge">0 words | 0 chars</span>
+                    </div>
+                    <div class="pane-actions">
+                        <button type="button" id="copyBtn" class="btn-sm">Copy</button>
+                        <button type="button" id="exportTxtBtn" class="btn-sm">Export .txt</button>
+                        <button type="button" id="exportMdBtn" class="btn-sm">Export .md</button>
+                    </div>
+                </div>
+                <div class="pane-body">
+                    <textarea id="revisedText" class="editor-textarea" placeholder="Refined text will appear here..." readonly></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- Diagnostics and Change Summary Section -->
+        <section class="metrics-panel card" id="metricsPanel" aria-label="Text Quality Diagnostics">
+            <div class="metrics-header">
+                <h3>Text Quality & Readability Diagnostics</h3>
+                <span class="metrics-disclaimer">Notice: Descriptive writing indicators only. Not an estimate of AI authorship or detector bypass.</span>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span class="metric-title">Flesch Reading Ease</span>
+                    <span class="metric-value" id="valReadingEase">-</span>
+                    <span class="metric-desc">Higher indicates easier readability (0-100)</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-title">Grade Level (FKGL)</span>
+                    <span class="metric-value" id="valGradeLevel">-</span>
+                    <span class="metric-desc">Approximate US school reading grade</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-title">Lexical Diversity</span>
+                    <span class="metric-value" id="valDiversity">-</span>
+                    <span class="metric-desc">Unique words / total words ratio</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-title">Reading Time</span>
+                    <span class="metric-value" id="valReadingTime">-</span>
+                    <span class="metric-desc">Estimated reading duration (200 wpm)</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-title">Net Word Delta</span>
+                    <span class="metric-value" id="valWordDelta">-</span>
+                    <span class="metric-desc" id="valWordDeltaDetail">Word additions / deletions</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-title">Est. Token & Cost</span>
+                    <span class="metric-value" id="valTokenCost">-</span>
+                    <span class="metric-desc" id="valTokenDetail">0 tokens | $0.00</span>
+                </div>
+            </div>
+
+            <!-- Change Summary Details -->
+            <div id="changeSummaryBox" class="change-summary-box hidden">
+                <h4>Key Modifications Summary:</h4>
+                <ul id="changeSummaryList"></ul>
+            </div>
+        </section>
+    </main>
+
+    <!-- Style Profile Modal -->
+    <div id="styleModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="styleModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="styleModalTitle">🎨 Custom Style Profile (Opt-in)</h3>
+                <button type="button" id="closeStyleModalBtn" class="alert-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">Configure personal style rules applied across your edits. Stored purely in your browser session.</p>
+                <div class="control-group">
+                    <label for="profileTone">Preferred Tone</label>
+                    <input type="text" id="profileTone" class="form-input" placeholder="e.g. Concise, Technical, Diplomatic">
+                </div>
+                <div class="control-group">
+                    <label for="profileAudience">Target Audience</label>
+                    <input type="text" id="profileAudience" class="form-input" placeholder="e.g. Senior Software Engineers">
+                </div>
+                <div class="control-group">
+                    <label for="profileForbidden">Forbidden Words (comma-separated)</label>
+                    <input type="text" id="profileForbidden" class="form-input" placeholder="e.g. delve, robust, game-changer, seamless">
+                </div>
+                <div class="control-group">
+                    <label for="profileGuidelines">Custom Writing Guidelines</label>
+                    <textarea id="profileGuidelines" class="form-input" rows="3" placeholder="e.g. Use active voice; write in present tense; keep sentences under 25 words."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="clearProfileBtn" class="btn btn-secondary">Reset</button>
+                <button type="button" id="saveProfileBtn" class="btn btn-primary">Save Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session History Modal -->
+    <div id="historyModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
+        <div class="modal-card modal-large">
+            <div class="modal-header">
+                <h3 id="historyModalTitle">📜 Session Document History</h3>
+                <button type="button" id="closeHistoryModalBtn" class="alert-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="history-privacy-banner">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="historyOptInCheckbox">
+                        <span><strong>Opt-in to local session history</strong> (Saved locally in your browser only. Never transmitted or stored on server).</span>
+                    </label>
+                </div>
+                <div id="historyList" class="history-list">
+                    <p class="history-empty">No revisions saved in this session.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="clearHistoryBtn" class="btn btn-danger">Clear All History</button>
+                <button type="button" id="closeHistoryBtn" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        <p>NapsterTec Text Intelligence Engine &bull; Version 2.1.0 &bull; Streaming, Selection-Editing, and Privacy-First Architecture</p>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
