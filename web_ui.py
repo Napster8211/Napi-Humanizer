@@ -5,6 +5,7 @@ import logging
 from flask import Flask, render_template, make_response
 from core.config import get_config, AppConfig
 from api.routes import api_bp
+from core.document_extractor import MAX_UPLOAD_BYTES
 
 
 def create_app(config: AppConfig = None) -> Flask:
@@ -28,7 +29,9 @@ def create_app(config: AppConfig = None) -> Flask:
         static_folder=static_dir,
     )
     app.config["ENGINE_CONFIG"] = cfg
-    app.config["MAX_CONTENT_LENGTH"] = (cfg.max_input_chars * 4) + 1024  # Enforce payload limit
+    # JSON requests remain bounded by the configured text limit; uploads have a separate
+    # bounded binary limit and are extracted transiently by /api/v1/extract.
+    app.config["MAX_CONTENT_LENGTH"] = max((cfg.max_input_chars * 4) + 1024, MAX_UPLOAD_BYTES + (256 * 1024))
 
     # Register API blueprint
     app.register_blueprint(api_bp)

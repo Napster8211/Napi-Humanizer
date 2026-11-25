@@ -3,264 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Napi Humanizer</title>
+    <meta name="description" content="Napi Humanizer is a clear, privacy-conscious writing workspace for refining and understanding drafts.">
+    <title>Napi Humanizer | Writing workspace</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <header class="app-header">
         <div class="header-container">
-            <div class="brand">
-                <span class="brand-logo">⚡</span>
-                <div class="brand-text">
-                    <h1>Napi Humanizer</h1>
-                    <span class="tagline">LLM-Assisted Editorial Refinement & Writing Workspace</span>
-                </div>
-            </div>
-            <div class="header-right">
-                <button type="button" id="historyModalBtn" class="btn-sm">📜 Session History (<span id="historyCount">0</span>)</button>
-                <button type="button" id="styleProfileBtn" class="btn-sm">🎨 Style Profile</button>
-                <div class="env-badge" id="envBadge">
-                    <span class="badge-dot"></span>
-                    <span id="envStatusText">Provider: {{ llm_provider }}</span>
-                </div>
+            <a class="brand" href="/" aria-label="Napi Humanizer home">
+                <span class="brand-mark" aria-hidden="true">N</span>
+                <span class="brand-text">
+                    <strong>Napi Humanizer</strong>
+                    <span>Writing, refined with care.</span>
+                </span>
+            </a>
+            <div class="header-actions">
+                <span class="env-badge" id="envBadge"><span class="badge-dot"></span><span id="envStatusText">Provider: {{ llm_provider }}</span></span>
+                <button type="button" id="historyModalBtn" class="text-button">History <span id="historyCount">0</span></button>
+                <button type="button" id="styleProfileBtn" class="text-button">Style profile</button>
             </div>
         </div>
     </header>
 
     <main class="main-container">
-        <!-- Control Bar -->
-        <section class="control-panel card" aria-label="Editing Controls">
-            <div class="control-row">
-                <div class="control-group">
-                    <label for="modeSelect">Editing Mode</label>
-                    <select id="modeSelect" class="form-select">
-                        <option value="proofread" selected>Proofread (Correct errors, keep voice)</option>
-                        <option value="clarity">Clarity (Untangle complex wording)</option>
-                        <option value="natural">Natural / Fluent (Smooth rhythm & flow)</option>
-                        <option value="professional">Professional (Executive business register)</option>
-                        <option value="academic">Academic (Precise, formal, keep citations)</option>
-                        <option value="conversational">Conversational (Warm & approachable)</option>
-                        <option value="concise">Concise (Cut filler & redundancy)</option>
-                        <option value="simplify">Simplify (Plain language explanation)</option>
-                        <option value="custom">Custom (Follow user instructions)</option>
-                    </select>
-                </div>
+        <section class="intro-block" aria-labelledby="pageTitle">
+            <p class="eyebrow">Your writing workspace</p>
+            <h1 id="pageTitle">Make your draft clearer.</h1>
+            <p id="pageDescription" class="intro-copy">Polish wording, improve flow, and keep your meaning intact.</p>
+        </section>
 
-                <div class="control-group">
-                    <label for="intensitySelect">Editing Intensity</label>
-                    <select id="intensitySelect" class="form-select">
-                        <option value="light">Light (Targeted minimal polish)</option>
-                        <option value="balanced" selected>Balanced (Standard editorial polish)</option>
-                        <option value="substantial">Substantial (Comprehensive rephrasing)</option>
-                    </select>
-                </div>
+        <nav class="tool-nav" aria-label="Writing tools" role="tablist">
+            <button type="button" class="tool-tab active" data-tool="humanize" role="tab" aria-selected="true"><span class="tool-icon">Aa</span><span>Humanize</span></button>
+            <button type="button" class="tool-tab" data-tool="detector" role="tab" aria-selected="false"><span class="tool-icon">◎</span><span>AI Detector</span></button>
+            <button type="button" class="tool-tab" data-tool="grammar" role="tab" aria-selected="false"><span class="tool-icon">✓</span><span>Grammar</span></button>
+            <button type="button" class="tool-tab" data-tool="summarizer" role="tab" aria-selected="false"><span class="tool-icon">≡</span><span>Summarizer</span></button>
+            <button type="button" class="tool-tab" data-tool="tone" role="tab" aria-selected="false"><span class="tool-icon">↗</span><span>Tone changer</span></button>
+            <button type="button" class="tool-tab" data-tool="readability" role="tab" aria-selected="false"><span class="tool-icon">▥</span><span>Readability</span></button>
+        </nav>
 
-                <div class="control-group">
-                    <label for="toneInput">Tone (Optional)</label>
-                    <input type="text" id="toneInput" class="form-input" placeholder="e.g. Authoritative, Empathetic">
-                </div>
+        <div id="alertBox" class="alert-box hidden" role="alert"><span id="alertIcon" class="alert-icon">!</span><span id="alertMessage" class="alert-message"></span><button type="button" id="alertCloseBtn" class="alert-close" aria-label="Close alert">×</button></div>
+        <div id="selectionBanner" class="selection-banner hidden" role="status"><span><strong id="selectionLength">0</strong> characters selected. The next edit will apply only to this excerpt.</span><button type="button" id="clearSelectionBtn" class="text-button">Use full document</button></div>
 
-                <div class="control-group">
-                    <label for="audienceInput">Audience (Optional)</label>
-                    <input type="text" id="audienceInput" class="form-input" placeholder="e.g. Executives, General public">
+        <section class="workspace-card" aria-label="Writing editor">
+            <div class="workspace-topline">
+                <div>
+                    <span class="eyebrow">Editor</span>
+                    <p class="workspace-hint">Paste your text below, choose a tool, and review the result on the right.</p>
+                </div>
+                <div class="quick-actions"><label for="documentFile" class="upload-button">Upload document</label><input type="file" id="documentFile" class="file-input" accept=".txt,.md,.markdown,.docx,.pdf" aria-describedby="uploadStatus"><button type="button" id="sampleBtn" class="quiet-button">Try a sample</button><button type="button" id="clearBtn" class="quiet-button">Clear</button></div>
+            </div>
+            <p id="uploadStatus" class="upload-status" role="status">Supported: TXT, MD, DOCX, PDF · up to 8 MB · uploads are not stored.</p>
+
+            <div class="editor-grid">
+                <div class="editor-pane">
+                    <div class="pane-header"><div><h2>Original text</h2><span id="originalCounts" class="counts-badge">0 words · 0 chars</span></div><span id="detectedLangBadge" class="lang-badge">EN</span></div>
+                    <textarea id="originalText" class="editor-textarea" placeholder="Paste or type your draft here…" maxlength="{{ max_input_chars }}" aria-label="Original text"></textarea>
+                    <p class="editor-tip">Tip: select a sentence to edit only that part.</p>
+                </div>
+                <div class="editor-divider" aria-hidden="true">→</div>
+                <div class="editor-pane output-pane">
+                    <div class="pane-header"><div><h2>Result</h2><span id="revisedCounts" class="counts-badge">0 words · 0 chars</span></div><div class="pane-actions"><button type="button" id="copyBtn" class="quiet-button">Copy</button><button type="button" id="exportTxtBtn" class="quiet-button">Export</button><button type="button" id="exportMdBtn" class="hidden">Export markdown</button></div></div>
+                    <textarea id="revisedText" class="editor-textarea" placeholder="Your result will appear here…" readonly aria-label="Revised text"></textarea>
+                    <p class="editor-tip output-tip">Your original draft stays on the left for comparison.</p>
                 </div>
             </div>
 
-            <!-- Custom Instructions Collapsible -->
-            <div class="custom-instructions-container" id="customInstructionsWrapper">
-                <label for="customInstructions">Custom Editorial Instructions (Optional)</label>
-                <input type="text" id="customInstructions" class="form-input" placeholder="e.g. Emphasize sustainability, retain bullet points">
-            </div>
-
-            <div class="action-row">
-                <div class="action-left">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="streamCheckbox" checked>
-                        <span>Stream response (SSE)</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="fallbackCheckbox" checked>
-                        <span>Allow local deterministic fallback if provider is unavailable</span>
-                    </label>
-                </div>
-                <div class="action-buttons">
-                    <button type="button" id="analyzeBtn" class="btn btn-secondary">Analyze Metrics</button>
-                    <button type="button" id="refineBtn" class="btn btn-primary">
-                        <span id="refineBtnSpinner" class="spinner hidden"></span>
-                        <span id="refineBtnText">Refine Text</span>
-                    </button>
-                    <button type="button" id="cancelBtn" class="btn btn-danger hidden">Cancel</button>
-                </div>
+            <div class="action-bar">
+                <div class="primary-action-copy"><strong id="actionHelper">Ready when you are.</strong><span id="actionSubcopy">Your text is processed with your selected tool.</span></div>
+                <div class="action-buttons"><button type="button" id="cancelBtn" class="btn btn-secondary hidden">Cancel</button><button type="button" id="analyzeBtn" class="btn btn-secondary">Analyze writing</button><button type="button" id="refineBtn" class="btn btn-primary"><span id="refineBtnSpinner" class="spinner hidden"></span><span id="refineBtnText">Humanize text</span></button></div>
             </div>
         </section>
 
-        <!-- Notification Banner -->
-        <div id="alertBox" class="alert-box hidden" role="alert">
-            <span id="alertIcon" class="alert-icon">ℹ️</span>
-            <span id="alertMessage" class="alert-message"></span>
-            <button type="button" id="alertCloseBtn" class="alert-close" aria-label="Close alert">&times;</button>
-        </div>
-
-        <!-- Selection Banner (Shown when user selects text) -->
-        <div id="selectionBanner" class="selection-banner hidden">
-            <span>✂️ Active Selection: <strong id="selectionLength">0</strong> characters selected. Editing will apply <em>only</em> to this excerpt.</span>
-            <button type="button" id="clearSelectionBtn" class="btn-sm">Edit Full Document Instead</button>
-        </div>
-
-        <!-- Warnings Container -->
-        <div id="warningsBox" class="warnings-box hidden">
-            <h4>Integrity & Protected Span Notices:</h4>
-            <ul id="warningsList"></ul>
-        </div>
-
-        <!-- Editor Workspace (Side-by-side) -->
-        <section class="workspace-grid" aria-label="Text Workspace">
-            <!-- Left Pane: Original Text -->
-            <div class="editor-pane card">
-                <div class="pane-header">
-                    <div class="pane-title">
-                        <h3>Original Text</h3>
-                        <span id="originalCounts" class="counts-badge">0 words | 0 chars</span>
-                        <span id="detectedLangBadge" class="lang-badge">Lang: EN</span>
-                    </div>
-                    <div class="pane-actions">
-                        <button type="button" id="sampleBtn" class="btn-sm">Load Sample</button>
-                        <button type="button" id="clearBtn" class="btn-sm">Clear</button>
-                    </div>
-                </div>
-                <div class="pane-body">
-                    <textarea id="originalText" class="editor-textarea" placeholder="Paste or type text to refine..." maxlength="{{ max_input_chars }}"></textarea>
-                </div>
+        <details class="advanced-settings">
+            <summary>Fine-tune the result <span>Optional</span></summary>
+            <div class="settings-grid">
+                <div class="control-group"><label for="modeSelect">Writing goal</label><select id="modeSelect" class="form-select"><option value="proofread">Proofread</option><option value="clarity">Clarity</option><option value="natural" selected>Natural / Fluent</option><option value="professional">Professional</option><option value="academic">Academic</option><option value="conversational">Conversational</option><option value="concise">Concise</option><option value="simplify">Simplify</option><option value="custom">Custom</option></select></div>
+                <div class="control-group"><label for="intensitySelect">Amount of change</label><select id="intensitySelect" class="form-select"><option value="light">Light</option><option value="balanced" selected>Balanced</option><option value="substantial">Substantial</option></select></div>
+                <div class="control-group"><label for="toneInput">Tone <span>Optional</span></label><input type="text" id="toneInput" class="form-input" placeholder="e.g. warm, confident"></div>
+                <div class="control-group"><label for="audienceInput">Audience <span>Optional</span></label><input type="text" id="audienceInput" class="form-input" placeholder="e.g. customers, executives"></div>
+                <div class="control-group wide-control"><label for="customInstructions">Extra instructions <span>Optional</span></label><input type="text" id="customInstructions" class="form-input" placeholder="Keep bullet points, preserve citations, or add your own guidance"></div>
+                <label class="checkbox-label"><input type="checkbox" id="streamCheckbox" checked><span>Stream the result as it is generated</span></label>
+                <label class="checkbox-label"><input type="checkbox" id="fallbackCheckbox" checked><span>Use local polish if the provider is unavailable</span></label>
             </div>
+        </details>
 
-            <!-- Right Pane: Revised Text & Diff -->
-            <div class="editor-pane card">
-                <div class="pane-header">
-                    <div class="pane-title">
-                        <h3>Revised Text</h3>
-                        <span id="revisedCounts" class="counts-badge">0 words | 0 chars</span>
-                    </div>
-                    <div class="pane-actions">
-                        <button type="button" id="copyBtn" class="btn-sm">Copy</button>
-                        <button type="button" id="exportTxtBtn" class="btn-sm">Export .txt</button>
-                        <button type="button" id="exportMdBtn" class="btn-sm">Export .md</button>
-                    </div>
-                </div>
-                <div class="pane-body">
-                    <textarea id="revisedText" class="editor-textarea" placeholder="Refined text will appear here..." readonly></textarea>
-                </div>
-            </div>
-        </section>
+        <section id="warningsBox" class="warnings-box hidden" aria-live="polite"><h2>Things to review</h2><ul id="warningsList"></ul></section>
 
-        <!-- Diagnostics and Change Summary Section -->
-        <section class="metrics-panel card" id="metricsPanel" aria-label="Text Quality Diagnostics">
-            <div class="metrics-header">
-                <h3>Text Quality & Readability Diagnostics</h3>
-                <span class="metrics-disclaimer">Notice: Descriptive writing indicators only. Not an estimate of AI authorship or detector bypass.</span>
-            </div>
+        <section class="insights-panel" id="metricsPanel" aria-label="Writing insights">
+            <div class="insights-heading"><div><p class="eyebrow">Insights</p><h2 id="insightsTitle">Writing signals</h2></div><p id="insightsDisclaimer" class="metrics-disclaimer">Descriptive indicators only. They do not estimate AI authorship.</p></div>
             <div class="metrics-grid">
-                <div class="metric-card">
-                    <span class="metric-title">Flesch Reading Ease</span>
-                    <span class="metric-value" id="valReadingEase">-</span>
-                    <span class="metric-desc">Higher indicates easier readability (0-100)</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-title">Grade Level (FKGL)</span>
-                    <span class="metric-value" id="valGradeLevel">-</span>
-                    <span class="metric-desc">Approximate US school reading grade</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-title">Lexical Diversity</span>
-                    <span class="metric-value" id="valDiversity">-</span>
-                    <span class="metric-desc">Unique words / total words ratio</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-title">Reading Time</span>
-                    <span class="metric-value" id="valReadingTime">-</span>
-                    <span class="metric-desc">Estimated reading duration (200 wpm)</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-title">Net Word Delta</span>
-                    <span class="metric-value" id="valWordDelta">-</span>
-                    <span class="metric-desc" id="valWordDeltaDetail">Word additions / deletions</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-title">Est. Token & Cost</span>
-                    <span class="metric-value" id="valTokenCost">-</span>
-                    <span class="metric-desc" id="valTokenDetail">0 tokens | $0.00</span>
-                </div>
+                <div class="metric-card"><span class="metric-title">Reading ease</span><strong class="metric-value" id="valReadingEase">-</strong><span class="metric-desc">Higher is easier to read</span></div>
+                <div class="metric-card"><span class="metric-title">Grade level</span><strong class="metric-value" id="valGradeLevel">-</strong><span class="metric-desc">Approximate reading level</span></div>
+                <div class="metric-card"><span class="metric-title">Word variety</span><strong class="metric-value" id="valDiversity">-</strong><span class="metric-desc">Unique words in the draft</span></div>
+                <div class="metric-card"><span class="metric-title">Reading time</span><strong class="metric-value" id="valReadingTime">-</strong><span class="metric-desc">Estimated at 200 words/min</span></div>
+                <div class="metric-card"><span class="metric-title">Word change</span><strong class="metric-value" id="valWordDelta">-</strong><span class="metric-desc" id="valWordDeltaDetail">Additions and removals</span></div>
+                <div class="metric-card"><span class="metric-title">Usage</span><strong class="metric-value" id="valTokenCost">-</strong><span class="metric-desc" id="valTokenDetail">No request yet</span></div>
             </div>
-
-            <!-- Change Summary Details -->
-            <div id="changeSummaryBox" class="change-summary-box hidden">
-                <h4>Key Modifications Summary:</h4>
-                <ul id="changeSummaryList"></ul>
-            </div>
+            <div id="changeSummaryBox" class="change-summary-box hidden"><h3>What changed</h3><ul id="changeSummaryList"></ul></div>
+            <div id="detectorNotice" class="detector-notice hidden"><strong>About AI Detector</strong><p>These are observable writing patterns, not proof of who wrote the text. No reliable AI probability or authorship verdict is provided.</p></div>
         </section>
     </main>
 
-    <!-- Style Profile Modal -->
-    <div id="styleModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="styleModalTitle">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3 id="styleModalTitle">🎨 Custom Style Profile (Opt-in)</h3>
-                <button type="button" id="closeStyleModalBtn" class="alert-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p class="modal-desc">Configure personal style rules applied across your edits. Stored purely in your browser session.</p>
-                <div class="control-group">
-                    <label for="profileTone">Preferred Tone</label>
-                    <input type="text" id="profileTone" class="form-input" placeholder="e.g. Concise, Technical, Diplomatic">
-                </div>
-                <div class="control-group">
-                    <label for="profileAudience">Target Audience</label>
-                    <input type="text" id="profileAudience" class="form-input" placeholder="e.g. Senior Software Engineers">
-                </div>
-                <div class="control-group">
-                    <label for="profileForbidden">Forbidden Words (comma-separated)</label>
-                    <input type="text" id="profileForbidden" class="form-input" placeholder="e.g. delve, robust, game-changer, seamless">
-                </div>
-                <div class="control-group">
-                    <label for="profileGuidelines">Custom Writing Guidelines</label>
-                    <textarea id="profileGuidelines" class="form-input" rows="3" placeholder="e.g. Use active voice; write in present tense; keep sentences under 25 words."></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" id="clearProfileBtn" class="btn btn-secondary">Reset</button>
-                <button type="button" id="saveProfileBtn" class="btn btn-primary">Save Profile</button>
-            </div>
-        </div>
-    </div>
+    <div id="styleModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="styleModalTitle"><div class="modal-card"><div class="modal-header"><h2 id="styleModalTitle">Style profile</h2><button type="button" id="closeStyleModalBtn" class="alert-close">×</button></div><div class="modal-body"><p class="modal-desc">Save personal preferences in this browser only. They are sent with a rewrite only when you use them.</p><div class="control-group"><label for="profileTone">Preferred tone</label><input type="text" id="profileTone" class="form-input" placeholder="e.g. concise, technical"></div><div class="control-group"><label for="profileAudience">Target audience</label><input type="text" id="profileAudience" class="form-input" placeholder="e.g. senior engineers"></div><div class="control-group"><label for="profileForbidden">Words to avoid</label><input type="text" id="profileForbidden" class="form-input" placeholder="Comma-separated"></div><div class="control-group"><label for="profileGuidelines">Writing guidelines</label><textarea id="profileGuidelines" class="form-input" rows="3" placeholder="e.g. Use active voice."></textarea></div></div><div class="modal-footer"><button type="button" id="clearProfileBtn" class="btn btn-secondary">Reset</button><button type="button" id="saveProfileBtn" class="btn btn-primary">Save profile</button></div></div></div>
+    <div id="historyModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle"><div class="modal-card modal-large"><div class="modal-header"><h2 id="historyModalTitle">Session history</h2><button type="button" id="closeHistoryModalBtn" class="alert-close">×</button></div><div class="modal-body"><div class="history-privacy-banner"><label class="checkbox-label"><input type="checkbox" id="historyOptInCheckbox"><span><strong>Save local history</strong> — revisions stay in this browser and are never stored on the server.</span></label></div><div id="historyList" class="history-list"><p class="history-empty">No revisions saved in this session.</p></div></div><div class="modal-footer"><button type="button" id="clearHistoryBtn" class="btn btn-danger">Clear history</button><button type="button" id="closeHistoryBtn" class="btn btn-secondary">Close</button></div></div></div>
 
-    <!-- Session History Modal -->
-    <div id="historyModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
-        <div class="modal-card modal-large">
-            <div class="modal-header">
-                <h3 id="historyModalTitle">📜 Session Document History</h3>
-                <button type="button" id="closeHistoryModalBtn" class="alert-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="history-privacy-banner">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="historyOptInCheckbox">
-                        <span><strong>Opt-in to local session history</strong> (Saved locally in your browser only. Never transmitted or stored on server).</span>
-                    </label>
-                </div>
-                <div id="historyList" class="history-list">
-                    <p class="history-empty">No revisions saved in this session.</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" id="clearHistoryBtn" class="btn btn-danger">Clear All History</button>
-                <button type="button" id="closeHistoryBtn" class="btn btn-secondary">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <footer class="app-footer">
-        <p>Napi Humanizer &bull; Version 2.1.0 &bull; Streaming, Selection-Editing, and Privacy-First Architecture</p>
-    </footer>
-
+    <footer class="app-footer"><span>Napi Humanizer</span><span>Privacy-conscious writing tools</span><span>Version 2.1.0</span></footer>
     <script src="/static/app.js"></script>
 </body>
 </html>

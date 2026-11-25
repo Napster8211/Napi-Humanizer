@@ -19,6 +19,7 @@ from core.errors import (
     ProviderError,
 )
 from editing.modes import MODE_METADATA, INTENSITY_METADATA
+from core.document_extractor import DocumentExtractionError, MAX_UPLOAD_BYTES, extract_document
 
 api_bp = Blueprint("api_v1", __name__, url_prefix="/api/v1")
 
@@ -151,6 +152,35 @@ def analyze_text():
     except Exception as exc:
         current_app.logger.exception("Unexpected error during text analysis.")
         return jsonify({"error": "InternalError", "message": "An unexpected error occurred."}), 500
+
+
+@api_bp.route("/extract", methods=["POST"])
+def extract_uploaded_document():
+    """Extract text from one supported document without storing the upload."""
+    uploaded = request.files.get("file")
+    if uploaded is None or not uploaded.filename:
+        return jsonify({"error": "MissingFile", "message": "Choose a document to upload."}), 400
+
+    try:
+        data = uploaded.stream.read(MAX_UPLOAD_BYTES + 1)
+        text = extract_document(uploaded.filename, data)
+        config = current_app.config.get("ENGINE_CONFIG")
+        max_chars = config.max_input_chars if config else 15000
+        if len(text) > max_chars:
+            return jsonify({
+                "error": "InputTooLarge",
+                "message": f"The extracted document contains {len(text):,} characters. The current limit is {max_chars:,}.",
+            }), 413
+        return jsonify({
+            "filename": uploaded.filename,
+            "text": text,
+            "char_count": len(text),
+        }), 200
+    except DocumentExtractionError as exc:
+        return jsonify({"error": "DocumentExtractionError", "message": str(exc)}), 400
+    except Exception:
+        current_app.logger.exception("Unexpected error extracting uploaded document.")
+        return jsonify({"error": "InternalError", "message": "The document could not be processed."}), 500
 
 
 @api_bp.route("/modes", methods=["GET"])

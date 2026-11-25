@@ -29,6 +29,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const sampleBtn = document.getElementById("sampleBtn");
     const clearBtn = document.getElementById("clearBtn");
+    const documentFile = document.getElementById("documentFile");
+    const uploadStatus = document.getElementById("uploadStatus");
     const copyBtn = document.getElementById("copyBtn");
     const exportTxtBtn = document.getElementById("exportTxtBtn");
     const exportMdBtn = document.getElementById("exportMdBtn");
@@ -78,8 +80,107 @@ document.addEventListener("DOMContentLoaded", () => {
     const historyList = document.getElementById("historyList");
     const historyCount = document.getElementById("historyCount");
 
+    const toolTabs = document.querySelectorAll(".tool-tab");
+    const pageTitle = document.getElementById("pageTitle");
+    const pageDescription = document.getElementById("pageDescription");
+    const actionHelper = document.getElementById("actionHelper");
+    const actionSubcopy = document.getElementById("actionSubcopy");
+    const insightsTitle = document.getElementById("insightsTitle");
+    const insightsDisclaimer = document.getElementById("insightsDisclaimer");
+    const detectorNotice = document.getElementById("detectorNotice");
+
+    const toolDefinitions = {
+        humanize: {
+            title: "Make your draft clearer.",
+            description: "Polish wording, improve flow, and keep your meaning intact.",
+            action: "Humanize text",
+            helper: "Ready when you are.",
+            subcopy: "Your text is processed with your selected tool.",
+            mode: "natural",
+            analyze: false,
+            insights: "Writing signals",
+        },
+        detector: {
+            title: "Understand your writing patterns.",
+            description: "Review observable structure and readability signals without an authorship verdict.",
+            action: "Analyze writing",
+            helper: "Analysis is descriptive, not a verdict.",
+            subcopy: "No reliable AI probability or authorship claim is produced.",
+            mode: "proofread",
+            analyze: true,
+            insights: "Descriptive writing signals",
+        },
+        grammar: {
+            title: "Tidy up grammar and mechanics.",
+            description: "Correct spelling, punctuation, and grammar while keeping your voice.",
+            action: "Check grammar",
+            helper: "Keep your voice. Fix the details.",
+            subcopy: "Review the suggested result before using it.",
+            mode: "proofread",
+            analyze: false,
+            insights: "Grammar check insights",
+        },
+        summarizer: {
+            title: "Find the essential point.",
+            description: "Reduce repetition and extra wording while preserving the important details.",
+            action: "Summarize text",
+            helper: "Shorter does not have to mean vague.",
+            subcopy: "Use the advanced settings if you want more or less compression.",
+            mode: "concise",
+            analyze: false,
+            insights: "Summary insights",
+        },
+        tone: {
+            title: "Choose the right tone.",
+            description: "Shape the same message for a professional, conversational, academic, or custom audience.",
+            action: "Change tone",
+            helper: "Same meaning. A better fit for the moment.",
+            subcopy: "Add a preferred tone or audience under fine-tune settings.",
+            mode: "professional",
+            analyze: false,
+            insights: "Tone change insights",
+        },
+        readability: {
+            title: "See how your draft reads.",
+            description: "Get quick readability and structure signals before you revise.",
+            action: "Analyze writing",
+            helper: "A useful snapshot before the next edit.",
+            subcopy: "These metrics describe the text; they do not judge the author.",
+            mode: "proofread",
+            analyze: true,
+            insights: "Readability insights",
+        },
+    };
+    let activeTool = "humanize";
+
     let abortController = null;
     let activeSelectionRange = null;
+
+    function setActiveTool(toolId) {
+        const definition = toolDefinitions[toolId] || toolDefinitions.humanize;
+        activeTool = toolDefinitions[toolId] ? toolId : "humanize";
+        toolTabs.forEach((tab) => {
+            const selected = tab.dataset.tool === activeTool;
+            tab.classList.toggle("active", selected);
+            tab.setAttribute("aria-selected", selected ? "true" : "false");
+        });
+        pageTitle.textContent = definition.title;
+        pageDescription.textContent = definition.description;
+        actionHelper.textContent = definition.helper;
+        actionSubcopy.textContent = definition.subcopy;
+        refineBtnText.textContent = definition.action;
+        analyzeBtn.classList.toggle("hidden", !definition.analyze);
+        refineBtn.classList.toggle("hidden", definition.analyze);
+        insightsTitle.textContent = definition.insights;
+        detectorNotice.classList.toggle("hidden", activeTool !== "detector");
+        insightsDisclaimer.textContent = activeTool === "detector"
+            ? "Descriptive signals only. No reliable AI probability or authorship verdict."
+            : "Descriptive indicators only. They do not estimate AI authorship.";
+        if (modeSelect && definition.mode) modeSelect.value = definition.mode;
+    }
+
+    toolTabs.forEach((tab) => tab.addEventListener("click", () => setActiveTool(tab.dataset.tool)));
+    setActiveTool("humanize");
 
     // Load persisted Style Profile
     function loadSavedStyleProfile() {
@@ -243,6 +344,40 @@ document.addEventListener("DOMContentLoaded", () => {
         const chars = text.length;
         const words = text.trim() ? text.trim().split(/\s+/).length : 0;
         targetBadge.textContent = `${words} words | ${chars} chars`;
+    }
+
+    async function handleDocumentUpload() {
+        const file = documentFile.files && documentFile.files[0];
+        if (!file) return;
+        uploadStatus.textContent = `Reading ${file.name}…`;
+        uploadStatus.className = "upload-status is-active";
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+            const response = await fetch("/api/v1/extract", { method: "POST", body: formData });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "The document could not be processed.");
+            }
+            originalText.value = data.text || "";
+            revisedText.value = "";
+            activeSelectionRange = null;
+            selectionBanner.classList.add("hidden");
+            updateCounts(originalText, originalCounts);
+            updateCounts(revisedText, revisedCounts);
+            displayWarnings([]);
+            displayChangeSummary(null);
+            displayTokenUsage(null);
+            uploadStatus.textContent = `${data.filename} loaded · ${data.char_count.toLocaleString()} characters. Uploads are not stored.`;
+            uploadStatus.className = "upload-status is-active";
+            showAlert("Document loaded into the editor.", false);
+            documentFile.value = "";
+        } catch (err) {
+            uploadStatus.textContent = err.message;
+            uploadStatus.className = "upload-status is-error";
+            showAlert(err.message, true);
+            documentFile.value = "";
+        }
     }
 
     originalText.addEventListener("input", () => {
@@ -573,13 +708,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 (s) => `Detected [${s.span_type.toUpperCase()}]: ${s.text}`
             );
             displayWarnings(spanWarnings);
-            showAlert("Text analysis complete.", false);
+            if (activeTool === "detector") {
+                detectorNotice.classList.remove("hidden");
+                showAlert("Descriptive writing analysis complete. No authorship verdict was made.", false);
+            } else {
+                showAlert("Readability analysis complete.", false);
+            }
         } catch (err) {
             showAlert(`Analysis error: ${err.message}`, true);
         }
     }
 
     // Load Sample Text
+    documentFile.addEventListener("change", handleDocumentUpload);
     sampleBtn.addEventListener("click", () => {
         originalText.value =
             "In order to facilitate the expeditious implementation of project Alpha, " +

@@ -14,5 +14,8 @@ python-dotenv>=1.0.0
 # Data validation
 pydantic>=2.5.0
 
+# Transient PDF text extraction for the document uploader
+pypdf>=4.0.0
+
 # Testing and development
 pytest>=8.0.0
