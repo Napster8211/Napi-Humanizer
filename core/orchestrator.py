@@ -13,7 +13,7 @@ from core.metrics import compute_text_metrics, estimate_tokens_and_cost
 from core.prompt_builder import build_system_instruction, build_user_prompt
 from core.schemas import EditingMode, RewriteRequest, RewriteResponse
 from core.validator import OutputValidator, get_validator
-from editing.deterministic_tools import deterministic_basic_polish
+from editing.deterministic_tools import deterministic_tool_rewrite
 from providers.base import BaseLLMProvider
 from providers.factory import get_provider
 
@@ -117,7 +117,7 @@ class RewriteOrchestrator:
         model_name = "rule-based-engine"
 
         if request.mode == EditingMode.LEGACY:
-            revised_target = deterministic_basic_polish(target)
+            revised_target = deterministic_tool_rewrite(request, target)
             warnings.append("Processed via legacy deterministic engine (no LLM call).")
             is_fallback = True
         else:
@@ -128,7 +128,7 @@ class RewriteOrchestrator:
             except (ProviderMissingKeyError, ProviderError) as exc:
                 if not request.fallback_to_local:
                     raise
-                revised_target = deterministic_basic_polish(target)
+                revised_target = deterministic_tool_rewrite(request, target)
                 provider_name, model_name, is_fallback = "deterministic-fallback", "rule-based-engine", True
                 warnings.append(f"LLM provider unavailable ({exc}). Text refined using basic deterministic rules.")
 
@@ -161,7 +161,7 @@ class RewriteOrchestrator:
             })
 
             if request.mode == EditingMode.LEGACY:
-                revised_target = deterministic_basic_polish(target)
+                revised_target = deterministic_tool_rewrite(request, target)
                 is_fallback = True
                 warnings.append("Processed via legacy deterministic engine (no LLM call).")
                 yield self._sse("chunk", {"chunk": revised_target})
@@ -183,7 +183,7 @@ class RewriteOrchestrator:
                     if not request.fallback_to_local:
                         yield self._sse("error", {"code": "ProviderError", "message": "The rewrite provider was unavailable."})
                         return
-                    revised_target = deterministic_basic_polish(target)
+                    revised_target = deterministic_tool_rewrite(request, target)
                     provider_name, model_name, is_fallback = "deterministic-fallback", "rule-based-engine", True
                     warnings.append(f"LLM provider unavailable ({exc}). Text refined using basic deterministic rules.")
                     # Tell clients to replace partial provider output rather than append a duplicate fallback.

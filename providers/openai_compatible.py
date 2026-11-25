@@ -123,8 +123,14 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                         time.sleep(sleep_time)
                         continue
                     raise ProviderError(
-                        f"Upstream LLM provider temporary error ({response.status_code}).",
+                        f"Upstream provider temporary error ({response.status_code}).",
                         status_code=response.status_code,
+                    )
+
+                elif response.status_code == 402:
+                    raise ProviderResponseError(
+                        "OpenRouter rejected the request with HTTP 402. Check account credits, billing, or model access.",
+                        status_code=402,
                     )
 
                 else:
