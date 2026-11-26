@@ -37,7 +37,7 @@ def test_orchestrator_fallback_on_provider_error():
 
     req = RewriteRequest(
         text="Draft text with teh typographical error.",
-        mode=EditingMode.CLARITY,
+        mode=EditingMode.PROOFREAD,
         fallback_to_local=True,
     )
 
@@ -45,7 +45,7 @@ def test_orchestrator_fallback_on_provider_error():
     # Ensure fallback succeeded gracefully
     assert response.is_fallback is True
     assert "deterministic-fallback" in response.provider
-    assert any("fallback" in w.lower() or "timeout" in w.lower() for w in response.warnings)
+    assert "Basic corrections applied (limited mode)." in response.warnings
     # Check that deterministic polish was applied
     assert "the typographical error" in response.revised_text
 

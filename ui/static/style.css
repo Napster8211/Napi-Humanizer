@@ -55,6 +55,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .alert-box, .selection-banner, .warnings-box { border-radius: var(--radius-sm); padding: 12px 15px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .alert-error { color: var(--danger); background: #fff1ef; border: 1px solid #f1c8c4; }
 .alert-success { color: var(--success); background: #eef9f4; border: 1px solid #c9e9db; }
+.alert-warning { color: var(--warning); background: #fff8eb; border: 1px solid #f0d9ae; }
 .alert-close { margin-left: auto; border: 0; background: transparent; color: inherit; font-size: 22px; line-height: 1; }
 .selection-banner { color: var(--blue); background: var(--blue-soft); border: 1px solid #cfe1f1; justify-content: space-between; }
 .warnings-box { display: block; color: var(--warning); background: #fff8eb; border: 1px solid #f0d9ae; }

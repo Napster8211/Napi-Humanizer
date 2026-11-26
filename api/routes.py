@@ -23,6 +23,52 @@ from core.document_extractor import DocumentExtractionError, MAX_UPLOAD_BYTES, e
 
 api_bp = Blueprint("api_v1", __name__, url_prefix="/api/v1")
 
+
+def _public_rewrite_payload(result):
+    """Return only user-facing rewrite data; provider diagnostics stay server-side."""
+    payload = result.model_dump()
+    for key in ("provider", "model", "token_usage", "duration_ms"):
+        payload.pop(key, None)
+    payload["warnings"] = [
+        warning for warning in payload.get("warnings", [])
+        if warning.startswith("Review:") or warning == "Basic corrections applied (limited mode)."
+    ]
+    return payload
+
+
+def _public_provider_error(exc):
+    """Map provider failures to stable, vendor-neutral UI messages."""
+    if isinstance(exc, ProviderTimeoutError):
+        return {"ok": False, "code": "TIMEOUT", "message": "That took too long. Try a shorter selection.", "retryable": True}, 504
+    if isinstance(exc, ProviderRateLimitError) or getattr(exc, "status_code", None) in (402, 429):
+        return {"ok": False, "code": "ALL_MODELS_FAILED", "message": "Our rewriting service is busy right now. Please try again in a moment.", "retryable": True}, 503
+    return {"ok": False, "code": "ALL_MODELS_FAILED", "message": "Our rewriting service is busy right now. Please try again in a moment.", "retryable": True}, 503
+
+
+def _public_sse_events(events):
+    """Strip internal diagnostics from the existing SSE protocol."""
+    import json
+    for raw in events:
+        if not raw.startswith("event:"):
+            yield raw
+            continue
+        lines = raw.splitlines()
+        event_name = lines[0].split(":", 1)[1].strip()
+        data_line = next((line for line in lines if line.startswith("data:")), None)
+        if data_line is None:
+            yield raw
+            continue
+        try:
+            data = json.loads(data_line.split(":", 1)[1].strip())
+        except (ValueError, json.JSONDecodeError):
+            yield raw
+            continue
+        for key in ("provider", "model", "token_usage", "duration_ms"):
+            data.pop(key, None)
+        if event_name == "error":
+            data = {"code": "ALL_MODELS_FAILED", "message": "Our rewriting service is busy right now. Please try again in a moment."}
+        yield f"event: {event_name}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
 # Simple in-memory sliding rate limiter per client IP
 _rate_limit_cache: Dict[str, List[float]] = {}
 
@@ -70,7 +116,7 @@ def rewrite_text():
         req = RewriteRequest(**data)
         orchestrator = get_orchestrator()
         result = orchestrator.rewrite(req)
-        return jsonify(result.model_dump()), 200
+        return jsonify(_public_rewrite_payload(result)), 200
 
     except EmptyInputError as exc:
         return jsonify({"error": "EmptyInput", "message": str(exc)}), 400
@@ -85,13 +131,17 @@ def rewrite_text():
     except ValidationError as exc:
         return jsonify({"error": "ValidationError", "message": str(exc)}), 400
     except ProviderMissingKeyError as exc:
-        return jsonify({"error": "ProviderMissingKey", "message": str(exc)}), 503
+        payload, status = _public_provider_error(exc)
+        return jsonify(payload), status
     except ProviderRateLimitError as exc:
-        return jsonify({"error": "ProviderRateLimit", "message": str(exc)}), 429
+        payload, status = _public_provider_error(exc)
+        return jsonify(payload), status
     except ProviderTimeoutError as exc:
-        return jsonify({"error": "ProviderTimeout", "message": str(exc)}), 504
+        payload, status = _public_provider_error(exc)
+        return jsonify(payload), status
     except ProviderError as exc:
-        return jsonify({"error": "ProviderError", "message": str(exc)}), 502
+        payload, status = _public_provider_error(exc)
+        return jsonify(payload), status
     except Exception as exc:
         current_app.logger.exception("Unexpected error during text rewrite.")
         return jsonify({"error": "InternalError", "message": "An unexpected error occurred."}), 500
@@ -109,7 +159,7 @@ def rewrite_text_stream():
     try:
         req = RewriteRequest(**data)
         orchestrator = get_orchestrator()
-        generator = orchestrator.rewrite_stream(req)
+        generator = _public_sse_events(orchestrator.rewrite_stream(req))
         response = Response(stream_with_context(generator), mimetype="text/event-stream")
         response.headers["Cache-Control"] = "no-cache"
         response.headers["X-Accel-Buffering"] = "no"

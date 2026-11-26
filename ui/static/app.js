@@ -53,8 +53,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const valReadingTime = document.getElementById("valReadingTime");
     const valWordDelta = document.getElementById("valWordDelta");
     const valWordDeltaDetail = document.getElementById("valWordDeltaDetail");
-    const valTokenCost = document.getElementById("valTokenCost");
-    const valTokenDetail = document.getElementById("valTokenDetail");
 
     const changeSummaryBox = document.getElementById("changeSummaryBox");
     const changeSummaryList = document.getElementById("changeSummaryList");
@@ -372,7 +370,6 @@ document.addEventListener("DOMContentLoaded", () => {
             updateCounts(revisedText, revisedCounts);
             displayWarnings([]);
             displayChangeSummary(null);
-            displayTokenUsage(null);
             uploadStatus.textContent = `${data.filename} loaded · ${data.char_count.toLocaleString()} characters. Uploads are not stored.`;
             uploadStatus.className = "upload-status is-active";
             showAlert("Document loaded into the editor.", false);
@@ -414,9 +411,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Alerts
-    function showAlert(msg, isError = true) {
-        alertBox.className = isError ? "alert-box alert-error" : "alert-box alert-success";
-        alertIcon.textContent = isError ? "⚠️" : "✅";
+    function showAlert(msg, isError = true, variant = "") {
+        alertBox.className = isError ? "alert-box alert-error" : variant === "warning" ? "alert-box alert-warning" : "alert-box alert-success";
+        alertIcon.textContent = isError ? "!" : variant === "warning" ? "i" : "OK";
         alertMessage.textContent = msg;
         alertBox.classList.remove("hidden");
     }
@@ -432,12 +429,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isLoading) {
             refineBtn.disabled = true;
             refineBtnSpinner.classList.remove("hidden");
-            refineBtnText.textContent = "Refining...";
+            refineBtnText.textContent = "Working...";
             cancelBtn.classList.remove("hidden");
         } else {
             refineBtn.disabled = false;
             refineBtnSpinner.classList.add("hidden");
-            refineBtnText.textContent = "Refine Text";
+            refineBtnText.textContent = toolDefinitions[activeTool]?.action || "Humanize";
             cancelBtn.classList.add("hidden");
             abortController = null;
         }
@@ -503,16 +500,6 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             changeSummaryBox.classList.add("hidden");
         }
-    }
-
-    function displayTokenUsage(tokenUsage) {
-        if (!tokenUsage) {
-            valTokenCost.textContent = "-";
-            valTokenDetail.textContent = "0 tokens | $0.00";
-            return;
-        }
-        valTokenCost.textContent = `${tokenUsage.total_tokens} tkn`;
-        valTokenDetail.textContent = `~$${tokenUsage.estimated_cost_usd.toFixed(4)} USD`;
     }
 
     function displayDetector(data) {
@@ -612,18 +599,13 @@ document.addEventListener("DOMContentLoaded", () => {
             displayMetrics(data.metrics);
             displayWarnings(data.warnings);
             displayChangeSummary(data.change_summary);
-            displayTokenUsage(data.token_usage);
 
             saveHistoryItem(data);
 
             if (data.is_fallback) {
-                showAlert("Refined using deterministic basic polish (LLM provider unavailable or fallback mode).", false);
+                showAlert("Basic corrections applied (limited mode).", false, "warning");
             } else {
-                showAlert(`Successfully refined using ${data.provider} in ${data.duration_ms} ms.`, false);
-            }
-
-            if (data.provider) {
-                envStatusText.textContent = `Provider: ${data.provider}`;
+                showAlert("Done.", false);
             }
 
         } catch (err) {
@@ -674,9 +656,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
 
-                if (eventType === "init" || eventType === "provider") {
-                        envStatusText.textContent = `Provider: ${dataJson.provider}`;
-                } else if (eventType === "reset") {
+                if (eventType === "reset") {
                         revisedText.value = dataJson.text || "";
                         updateCounts(revisedText, revisedCounts);
                 } else if (eventType === "chunk") {
@@ -689,13 +669,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         displayMetrics(dataJson.metrics);
                         displayWarnings(dataJson.warnings);
                         displayChangeSummary(dataJson.change_summary);
-                        displayTokenUsage(dataJson.token_usage);
                         saveHistoryItem(dataJson);
 
                         if (dataJson.is_fallback) {
-                            showAlert("Refined using deterministic basic polish.", false);
+                            showAlert("Basic corrections applied (limited mode).", false, "warning");
                         } else {
-                            showAlert(`Streaming refinement complete (${dataJson.duration_ms} ms).`, false);
+                            showAlert("Done.", false);
                         }
                 } else if (eventType === "error") {
                         showAlert(dataJson.message || "Streaming error occurred.", true);
@@ -794,7 +773,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         displayWarnings([]);
         displayChangeSummary(null);
-        displayTokenUsage(null);
         hideAlert();
     });
 

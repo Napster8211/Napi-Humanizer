@@ -18,6 +18,12 @@ def test_api_health(client):
     assert "llm_api_key" not in data["config"]
 
 
+def test_api_health_alias(client):
+    response = client.get("/api/health")
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "healthy"
+
+
 def test_api_modes(client):
     response = client.get("/api/v1/modes")
     assert response.status_code == 200
@@ -66,7 +72,7 @@ def test_api_rewrite_fallback_on_error(client, mock_provider):
     mock_provider.set_simulate_error(ProviderTimeoutError("Upstream timeout"))
     payload = {
         "text": "We will recieve teh memo tomorrow.",
-        "mode": "clarity",
+        "mode": "proofread",
         "fallback_to_local": True,
     }
     response = client.post(
@@ -78,6 +84,27 @@ def test_api_rewrite_fallback_on_error(client, mock_provider):
     data = response.get_json()
     assert data["is_fallback"] is True
     assert "receive the memo" in data["revised_text"]
+    assert "provider" not in data
+    assert "model" not in data
+    assert "token_usage" not in data
+    assert all("OpenRouter" not in warning for warning in data.get("warnings", []))
+
+
+def test_api_provider_failure_is_honest_and_vendor_neutral(client, mock_provider):
+    mock_provider.set_simulate_error(ProviderTimeoutError("vendor detail must not escape"))
+    response = client.post(
+        "/api/v1/rewrite",
+        data=json.dumps({"text": "A natural rewrite is requested.", "mode": "natural", "fallback_to_local": True}),
+        content_type="application/json",
+    )
+    assert response.status_code == 504
+    data = response.get_json()
+    assert data == {
+        "ok": False,
+        "code": "TIMEOUT",
+        "message": "That took too long. Try a shorter selection.",
+        "retryable": True,
+    }
 
 
 def test_api_analyze(client):

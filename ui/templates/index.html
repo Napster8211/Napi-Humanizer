@@ -18,7 +18,7 @@
                 </span>
             </a>
             <div class="header-actions">
-                <span class="env-badge" id="envBadge"><span class="badge-dot"></span><span id="envStatusText">Provider: {{ llm_provider }}</span></span>
+                <span class="env-badge" id="envBadge"><span class="badge-dot"></span><span id="envStatusText">Ready</span></span>
                 <button type="button" id="historyModalBtn" class="text-button">History <span id="historyCount">0</span></button>
                 <button type="button" id="styleProfileBtn" class="text-button">Style profile</button>
             </div>
@@ -83,7 +83,7 @@
                 <div class="control-group"><label for="audienceInput">Audience <span>Optional</span></label><input type="text" id="audienceInput" class="form-input" placeholder="e.g. customers, executives"></div>
                 <div class="control-group wide-control"><label for="customInstructions">Extra instructions <span>Optional</span></label><input type="text" id="customInstructions" class="form-input" placeholder="Keep bullet points, preserve citations, or add your own guidance"></div>
                 <label class="checkbox-label"><input type="checkbox" id="streamCheckbox" checked><span>Stream the result as it is generated</span></label>
-                <label class="checkbox-label"><input type="checkbox" id="fallbackCheckbox" checked><span>Use local polish if the provider is unavailable</span></label>
+                <label class="checkbox-label"><input type="checkbox" id="fallbackCheckbox" checked><span>Allow basic corrections in Grammar mode only</span></label>
             </div>
         </details>
 
@@ -102,7 +102,6 @@
                 <div class="metric-card"><span class="metric-title">Word variety</span><strong class="metric-value" id="valDiversity">-</strong><span class="metric-desc">Unique words in the draft</span></div>
                 <div class="metric-card"><span class="metric-title">Reading time</span><strong class="metric-value" id="valReadingTime">-</strong><span class="metric-desc">Estimated at 200 words/min</span></div>
                 <div class="metric-card"><span class="metric-title">Word change</span><strong class="metric-value" id="valWordDelta">-</strong><span class="metric-desc" id="valWordDeltaDetail">Additions and removals</span></div>
-                <div class="metric-card"><span class="metric-title">Usage</span><strong class="metric-value" id="valTokenCost">-</strong><span class="metric-desc" id="valTokenDetail">No request yet</span></div>
             </div>
             <div id="changeSummaryBox" class="change-summary-box hidden"><h3>What changed</h3><ul id="changeSummaryList"></ul></div>
             <div id="detectorNotice" class="detector-notice hidden"><strong>About AI Detector</strong><p>Scores are signals, not verdicts. This tool highlights passages that match several observable linguistic patterns, but it cannot prove who wrote the text.</p></div>

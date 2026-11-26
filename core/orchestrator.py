@@ -126,11 +126,11 @@ class RewriteOrchestrator:
                 provider_name, model_name = provider.provider_name, provider.model
                 revised_target = provider.generate(prompt=prompt, system_instruction=system)
             except (ProviderMissingKeyError, ProviderError) as exc:
-                if not request.fallback_to_local:
+                if not request.fallback_to_local or request.mode != EditingMode.PROOFREAD:
                     raise
                 revised_target = deterministic_tool_rewrite(request, target)
                 provider_name, model_name, is_fallback = "deterministic-fallback", "rule-based-engine", True
-                warnings.append(f"LLM provider unavailable ({exc}). Text refined using basic deterministic rules.")
+                warnings.append("Basic corrections applied (limited mode).")
 
         revised_text = self._reconstruct(selection, revised_target)
         return self._response(request, request_id, start_time, selection, spans, revised_text,
@@ -180,12 +180,12 @@ class RewriteOrchestrator:
                     if not revised_target.strip():
                         raise ProviderError("Provider returned an empty streaming response.")
                 except (ProviderMissingKeyError, ProviderError) as exc:
-                    if not request.fallback_to_local:
+                    if not request.fallback_to_local or request.mode != EditingMode.PROOFREAD:
                         yield self._sse("error", {"code": "ProviderError", "message": "The rewrite provider was unavailable."})
                         return
                     revised_target = deterministic_tool_rewrite(request, target)
                     provider_name, model_name, is_fallback = "deterministic-fallback", "rule-based-engine", True
-                    warnings.append(f"LLM provider unavailable ({exc}). Text refined using basic deterministic rules.")
+                    warnings.append("Basic corrections applied (limited mode).")
                     # Tell clients to replace partial provider output rather than append a duplicate fallback.
                     yield self._sse("reset", {"text": revised_target})
                     yield self._sse("chunk", {"chunk": revised_target})
