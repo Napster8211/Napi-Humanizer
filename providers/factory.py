@@ -4,7 +4,7 @@ from typing import Optional
 from core.config import AppConfig, get_config
 from providers.base import BaseLLMProvider
 from providers.mock import MockLLMProvider
-from providers.openai_compatible import OpenAICompatibleProvider
+from providers.llm_client import LLMClient
 
 _override_provider: Optional[BaseLLMProvider] = None
 
@@ -25,12 +25,15 @@ def get_provider(config: Optional[AppConfig] = None) -> BaseLLMProvider:
     provider_type = cfg.llm_provider.lower()
 
     if provider_type in ("openai", "openrouter", "custom"):
-        return OpenAICompatibleProvider(
+        return LLMClient(
             api_key=cfg.llm_api_key,
             base_url=cfg.llm_base_url,
-            model=cfg.llm_model,
+            primary=cfg.llm_model,
+            fallbacks=cfg.llm_model_fallbacks,
+            allow_free_router=cfg.llm_allow_free_router,
             timeout_seconds=cfg.llm_timeout_seconds,
             max_retries=cfg.llm_max_retries,
+            catalog_refresh_seconds=cfg.llm_catalog_refresh_seconds,
         )
 
     # Default to deterministic mock provider

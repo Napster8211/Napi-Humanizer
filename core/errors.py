@@ -32,6 +32,11 @@ class InputTooLargeError(ValidationError):
     pass
 
 
+class WordLimitError(ValidationError):
+    """Raised when a rewrite exceeds the configured per-run word limit."""
+    pass
+
+
 class UnsupportedModeError(ValidationError):
     """Raised when an unrecognized editing mode is requested."""
     pass

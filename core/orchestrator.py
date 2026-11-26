@@ -64,7 +64,11 @@ class RewriteOrchestrator:
         return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
     def _request_context(self, request: RewriteRequest) -> Tuple[Dict[str, Any], List[Any], str, str]:
-        self.validator.validate_input(request, max_chars=self.config.max_input_chars)
+        self.validator.validate_input(
+            request,
+            max_chars=self.config.max_input_chars,
+            max_words=self.config.max_words_per_run,
+        )
         analysis = self.analyzer.analyze(request.text)
         selection = self._prepare_selection(request)
         if selection["is_selection"]:

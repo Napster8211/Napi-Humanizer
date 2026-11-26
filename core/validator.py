@@ -4,13 +4,13 @@ import re
 import difflib
 from typing import List, Tuple
 from core.schemas import RewriteRequest, ProtectedSpan, ChangeSummary
-from core.errors import EmptyInputError, InputTooLargeError, ValidationError
+from core.errors import EmptyInputError, InputTooLargeError, WordLimitError, ValidationError
 
 
 class OutputValidator:
     """Validates rewritten text against source integrity constraints."""
 
-    def validate_input(self, request: RewriteRequest, max_chars: int) -> None:
+    def validate_input(self, request: RewriteRequest, max_chars: int, max_words: int = 500) -> None:
         """Validate input text size and presence."""
         if not request.text or not request.text.strip():
             raise EmptyInputError("Input text must not be empty or whitespace-only.")
@@ -18,6 +18,9 @@ class OutputValidator:
             raise InputTooLargeError(
                 f"Input text exceeds maximum allowed length of {max_chars} characters (received {len(request.text)})."
             )
+        word_count = len(request.text.split())
+        if word_count > max_words:
+            raise WordLimitError(f"Please keep each run under {max_words} words.")
 
     def verify_protected_spans(self, original_text: str, revised_text: str, spans: List[ProtectedSpan]) -> List[str]:
         """Check whether critical protected entities from original text persist in revised text."""

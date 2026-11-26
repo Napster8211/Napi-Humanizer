@@ -26,6 +26,9 @@
     </header>
 
     <main class="main-container">
+        {% if app_env != 'production' %}
+        <div class="dev-retention-notice" role="note">Development mode: free AI services may retain prompts for service improvement. Avoid entering confidential information.</div>
+        {% endif %}
         <section class="intro-block" aria-labelledby="pageTitle">
             <p class="eyebrow">Your writing workspace</p>
             <h1 id="pageTitle">Make your draft clearer.</h1>

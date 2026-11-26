@@ -21,15 +21,19 @@ class AppConfig:
 
     # Provider configuration
     llm_provider: str = field(default_factory=lambda: os.getenv("LLM_PROVIDER", "mock").lower())
-    llm_api_key: Optional[str] = field(default_factory=lambda: os.getenv("LLM_API_KEY"))
+    llm_api_key: Optional[str] = field(default_factory=lambda: os.getenv("OPENROUTER_API_KEY") or os.getenv("LLM_API_KEY"))
     llm_base_url: str = field(default_factory=lambda: os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1"))
-    llm_model: str = field(default_factory=lambda: os.getenv("LLM_MODEL", "anthropic/claude-3.5-sonnet"))
-    llm_timeout_seconds: int = field(default_factory=lambda: int(os.getenv("LLM_TIMEOUT_SECONDS", "30")))
+    llm_model: str = field(default_factory=lambda: os.getenv("LLM_MODEL_PRIMARY") or os.getenv("LLM_MODEL", "anthropic/claude-3.5-sonnet"))
+    llm_model_fallbacks: str = field(default_factory=lambda: os.getenv("LLM_MODEL_FALLBACKS", ""))
+    llm_allow_free_router: bool = field(default_factory=lambda: os.getenv("LLM_ALLOW_FREE_ROUTER", "true").lower() in ("true", "1", "yes"))
+    llm_timeout_seconds: int = field(default_factory=lambda: max(1, int(os.getenv("LLM_TIMEOUT_MS", str(int(os.getenv("LLM_TIMEOUT_SECONDS", "30")) * 1000))) // 1000))
     llm_max_retries: int = field(default_factory=lambda: int(os.getenv("LLM_MAX_RETRIES", "2")))
+    llm_catalog_refresh_seconds: int = field(default_factory=lambda: int(os.getenv("LLM_CATALOG_REFRESH_SECONDS", "21600")))
 
     # Security limits
     max_input_chars: int = field(default_factory=lambda: int(os.getenv("MAX_INPUT_CHARS", "15000")))
-    rate_limit_per_minute: int = field(default_factory=lambda: int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")))
+    max_words_per_run: int = field(default_factory=lambda: int(os.getenv("MAX_WORDS_PER_RUN", "500")))
+    rate_limit_per_minute: int = field(default_factory=lambda: int(os.getenv("RATE_LIMIT_PER_MINUTE", "10")))
 
     # Logging and privacy
     log_level: str = field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO").upper())
@@ -45,6 +49,8 @@ class AppConfig:
             raise ValueError(f"LLM_TIMEOUT_SECONDS must be positive, got {self.llm_timeout_seconds}")
         if self.rate_limit_per_minute <= 0:
             raise ValueError(f"RATE_LIMIT_PER_MINUTE must be positive, got {self.rate_limit_per_minute}")
+        if self.max_words_per_run <= 0:
+            raise ValueError(f"MAX_WORDS_PER_RUN must be positive, got {self.max_words_per_run}")
         if self.llm_provider not in ("mock", "openai", "openrouter", "custom", "none", "local"):
             raise ValueError(f"Unsupported LLM_PROVIDER: {self.llm_provider}")
 
@@ -57,10 +63,13 @@ class AppConfig:
             "debug": self.debug,
             "llm_provider": self.llm_provider,
             "llm_model": self.llm_model,
+            "llm_model_fallbacks": self.llm_model_fallbacks,
+            "llm_allow_free_router": self.llm_allow_free_router,
             "llm_base_url": self.llm_base_url,
             "llm_timeout_seconds": self.llm_timeout_seconds,
             "has_api_key": bool(self.llm_api_key and self.llm_api_key.strip()),
             "max_input_chars": self.max_input_chars,
+            "max_words_per_run": self.max_words_per_run,
             "rate_limit_per_minute": self.rate_limit_per_minute,
             "log_raw_user_text": self.log_raw_user_text,
         }

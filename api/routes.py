@@ -13,6 +13,7 @@ from core.errors import (
     ValidationError,
     EmptyInputError,
     InputTooLargeError,
+    WordLimitError,
     ProviderMissingKeyError,
     ProviderTimeoutError,
     ProviderRateLimitError,
@@ -122,6 +123,8 @@ def rewrite_text():
         return jsonify({"error": "EmptyInput", "message": str(exc)}), 400
     except InputTooLargeError as exc:
         return jsonify({"error": "InputTooLarge", "message": str(exc)}), 413
+    except WordLimitError:
+        return jsonify({"ok": False, "code": "OVER_LIMIT", "message": "Please keep each run under 500 words.", "retryable": False}), 400
     except PydanticValidationError as exc:
         errors = [
             {"field": ".".join(str(loc) for loc in err.get("loc", [])), "message": err.get("msg", "Invalid value")}
@@ -169,6 +172,8 @@ def rewrite_text_stream():
         return jsonify({"error": "EmptyInput", "message": str(exc)}), 400
     except InputTooLargeError as exc:
         return jsonify({"error": "InputTooLarge", "message": str(exc)}), 413
+    except WordLimitError:
+        return jsonify({"ok": False, "code": "OVER_LIMIT", "message": "Please keep each run under 500 words.", "retryable": False}), 400
     except PydanticValidationError as exc:
         errors = [
             {"field": ".".join(str(loc) for loc in err.get("loc", [])), "message": err.get("msg", "Invalid value")}

@@ -26,7 +26,7 @@ The system prioritizes **semantic preservation**, **factual integrity**, **secur
 - **Editing Intensity Controls**: Select between `Light` (targeted minimal polish), `Balanced` (standard polish), and `Substantial` (comprehensive restructuring), with all factual points and protected entities preserved.
 - **Factual Integrity & Protected Spans**: Automatically detects, protects, and validates numbers, dates, currency amounts, percentages, citations, URLs, code blocks, and email addresses.
 - **Provider-Independent Architecture**: Seamlessly switch between OpenRouter, OpenAI, custom OpenAI-compatible endpoints, or deterministic offline mock mode.
-- **Graceful Local Fallback**: If an upstream LLM provider is misconfigured or encounters rate limits / timeouts, the engine automatically falls back to deterministic rule-based polish with transparent notification.
+- **Resilient Provider Routing**: OpenRouter requests use a configured primary, fallback models, dynamically discovered free text models, bounded retries, circuit breaking, and a final `openrouter/free` route when enabled. Deterministic rule-based fallback is reserved for Proofread/Grammar and is labeled as limited mode.
 - **Descriptive Quality Metrics**: Flesch Reading Ease, Flesch-Kincaid Grade Level, Lexical Diversity, and Reading Time. These metrics are strictly labeled as descriptive readability indicators, never as AI detection probabilities.
 - **Hardened Security & Privacy**:
   - Treats all user input as untrusted content enclosed in boundary tags (`<untrusted_user_text>`) to prevent prompt injection attacks.
@@ -105,15 +105,18 @@ DEBUG=false
 
 # LLM Provider: 'mock' (offline), 'openrouter', 'openai', or 'custom'
 LLM_PROVIDER=openrouter
-LLM_API_KEY=your_openrouter_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 LLM_BASE_URL=https://openrouter.ai/api/v1
-LLM_MODEL=anthropic/claude-3.5-sonnet
-LLM_TIMEOUT_SECONDS=30
+LLM_MODEL_PRIMARY=openrouter/free
+LLM_MODEL_FALLBACKS=
+LLM_ALLOW_FREE_ROUTER=true
+LLM_TIMEOUT_MS=45000
 LLM_MAX_RETRIES=2
 
 # Security & Limits
 MAX_INPUT_CHARS=15000
-RATE_LIMIT_PER_MINUTE=60
+MAX_WORDS_PER_RUN=500
+RATE_LIMIT_PER_MINUTE=10
 LOG_RAW_USER_TEXT=false
 ```
 
