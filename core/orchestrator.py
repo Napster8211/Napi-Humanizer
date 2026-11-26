@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 import time
 import uuid
 from typing import Any, Dict, Iterator, List, Optional, Tuple
@@ -17,6 +18,7 @@ from core.protection import (
     restore_protected_spans,
     validate_placeholders,
 )
+from core.chunking import split_for_rewrite
 from core.schemas import EditingMode, RewriteRequest, RewriteResponse
 from core.validator import OutputValidator, get_validator
 from editing.deterministic_tools import deterministic_tool_rewrite
@@ -69,7 +71,7 @@ class RewriteOrchestrator:
     def _sse(event: str, data: Dict[str, Any]) -> str:
         return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
-    def _request_context(self, request: RewriteRequest) -> Tuple[Dict[str, Any], List[Any], List[ProtectedPlaceholder], str, str]:
+    def _request_context(self, request: RewriteRequest) -> Tuple[Dict[str, Any], List[Any], List[ProtectedPlaceholder], str, str, str]:
         self.validator.validate_input(
             request,
             max_chars=self.config.max_input_chars,
@@ -93,7 +95,24 @@ class RewriteOrchestrator:
             text_to_edit=target_text,
             document_context=selection["document_context"],
         )
-        return selection, analysis.protected_spans, placeholders, system, prompt
+        return selection, analysis.protected_spans, placeholders, target_text, system, prompt
+
+    @staticmethod
+    def _prompt_for_chunk(prompt: str, chunk: str) -> str:
+        """Replace only the bounded target block, not document context, for a chunk call."""
+        pattern = r"(<untrusted_user_text>\n)[\s\S]*?(\n</untrusted_user_text>)"
+        return re.sub(pattern, lambda match: match.group(1) + chunk + match.group(2), prompt, count=1)
+
+    @classmethod
+    def _generate_bounded(cls, provider: BaseLLMProvider, prompt: str, system: str, target: str) -> str:
+        chunks = split_for_rewrite(target, max_words=350)
+        return "".join(
+            provider.generate(
+                prompt=cls._prompt_for_chunk(prompt, chunk) if len(chunks) > 1 else prompt,
+                system_instruction=system,
+            )
+            for chunk in chunks
+        )
 
     @staticmethod
     def _restore_provider_output(
@@ -105,7 +124,7 @@ class RewriteOrchestrator:
         placeholders: List[ProtectedPlaceholder],
     ) -> Tuple[str, List[str]]:
         """Validate provider placeholders and retry once before retaining source text."""
-        output = provider.generate(prompt=prompt, system_instruction=system)
+        output = RewriteOrchestrator._generate_bounded(provider, prompt, system, masked_target)
         if not placeholders:
             return output, []
         failure = validate_placeholders(output, placeholders)
@@ -117,7 +136,7 @@ class RewriteOrchestrator:
             "Copy every token such as ⟦P1⟧ exactly once and in the same order. "
             "Do not spell out, delete, duplicate, or move protected tokens."
         )
-        retry_output = provider.generate(prompt=prompt, system_instruction=strict_system)
+        retry_output = RewriteOrchestrator._generate_bounded(provider, prompt, strict_system, masked_target)
         retry_failure = validate_placeholders(retry_output, placeholders)
         if retry_failure is None:
             return restore_protected_spans(retry_output, placeholders), []
@@ -158,7 +177,7 @@ class RewriteOrchestrator:
     def rewrite(self, request: RewriteRequest) -> RewriteResponse:
         start_time = time.perf_counter()
         request_id = str(uuid.uuid4())
-        selection, spans, placeholders, system, prompt = self._request_context(request)
+        selection, spans, placeholders, masked_target, system, prompt = self._request_context(request)
         target = selection["target_text"]
         warnings: List[str] = []
         is_fallback = False
@@ -174,7 +193,7 @@ class RewriteOrchestrator:
                 provider = self.provider
                 provider_name, model_name = provider.provider_name, provider.model
                 revised_target, protection_warnings = self._restore_provider_output(
-                    provider, prompt, system, target, target, placeholders
+                    provider, prompt, system, masked_target, target, placeholders
                 )
                 warnings.extend(protection_warnings)
             except (ProviderMissingKeyError, ProviderError) as exc:
@@ -193,7 +212,7 @@ class RewriteOrchestrator:
         start_time = time.perf_counter()
         request_id = str(uuid.uuid4())
         try:
-            selection, spans, placeholders, system, prompt = self._request_context(request)
+            selection, spans, placeholders, masked_target, system, prompt = self._request_context(request)
             target = selection["target_text"]
             provider_name = "deterministic-local"
             model_name = "rule-based-engine"

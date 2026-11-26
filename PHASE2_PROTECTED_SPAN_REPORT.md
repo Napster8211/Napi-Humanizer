@@ -18,6 +18,12 @@ Rewrite requests now replace protected spans with ordered `⟦P1⟧`-style token
 
 The pipeline is selection-aware and preserves the existing selection reconstruction behavior. New tests cover successful restoration and safe retention after a damaged provider response. The complete suite passes with **78 passed, 2 warnings**; Python compilation, JavaScript syntax validation, and `git diff --check` also pass.
 
+## Bounded chunking completed
+
+Provider rewrite calls now use sentence-aware chunks capped at 350 words. Paragraph breaks are retained where possible, sentences are kept together until the limit is reached, and an unusually long sentence is safely split by words. The current 500-word request limit means most requests remain a single provider call; larger allowed inputs are divided without changing the public API or selection reconstruction contract.
+
+Chunking has focused unit coverage, and the complete suite now passes with **81 passed, 2 warnings**.
+
 ## Remaining Phase 2 work
 
-Chunking at paragraph/sentence boundaries, length and changed-word-ratio quality gates, and the 40-sample evaluation harness remain open. These should be added as separate small increments so the provider prompt and factual-safety behavior remain easy to test.
+Length and changed-word-ratio quality gates, streaming-specific chunk buffering, and the 40-sample evaluation harness remain open. These should be added as separate small increments so the provider prompt and factual-safety behavior remain easy to test.
