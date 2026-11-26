@@ -24,6 +24,10 @@ Provider rewrite calls now use sentence-aware chunks capped at 350 words. Paragr
 
 Chunking has focused unit coverage, and the complete suite now passes with **81 passed, 2 warnings**.
 
-## Remaining Phase 2 work
+## Quality gates and evaluation harness completed
 
-Length and changed-word-ratio quality gates, streaming-specific chunk buffering, and the 40-sample evaluation harness remain open. These should be added as separate small increments so the provider prompt and factual-safety behavior remain easy to test.
+Substantive non-Proofread rewrites now receive descriptive quality checks for the 70–130% length band and the requested changed-word-ratio band: Light 10–25%, Balanced 25–50%, and Substantial 50–75%. Concise and Simplify are exempt from the general length band. If a result is outside the applicable band, the provider receives one adjusted quality instruction; if the retry remains outside the band, the first result is retained with an honest warning rather than silently claiming that the target band was met. Short edits and Proofread are intentionally exempt from percentage gates.
+
+The `eval/` folder now contains 40 samples across the requested categories, including the master regression text, plus an opt-in `run_eval.py` harness. It compares selected models on protected-span integrity, length ratio, banned-phrase count, readability change, latency, and status, and writes derived metrics only to CSV. It is not imported by the Flask application and does not run during normal tests or deployment.
+
+The complete suite passes with **84 passed, 2 warnings**. Python compilation, JavaScript syntax validation, JSON validation, and `git diff --check` pass.

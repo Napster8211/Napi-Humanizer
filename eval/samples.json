@@ -1,0 +1,202 @@
+[
+  {
+    "id": "academic-01",
+    "category": "academic",
+    "text": "Prior studies indicate that careful sampling improves the reliability of the estimate, although the result remains sensitive to missing observations."
+  },
+  {
+    "id": "academic-02",
+    "category": "academic",
+    "text": "The experiment was conducted over three sessions and compared the control group with the treatment group using a predefined protocol."
+  },
+  {
+    "id": "academic-03",
+    "category": "academic",
+    "text": "The authors argue that the relationship is plausible, but the evidence does not establish causation without a larger longitudinal study."
+  },
+  {
+    "id": "academic-04",
+    "category": "academic",
+    "text": "The literature review identified a consistent association between sleep quality and concentration among university students."
+  },
+  {
+    "id": "academic-05",
+    "category": "academic",
+    "text": "The proposed framework combines qualitative interviews with quantitative measurements to explain how participants make decisions."
+  },
+  {
+    "id": "business-01",
+    "category": "business",
+    "text": "Our customer-support team reduced the average response time from 18 hours to 6 hours during the first quarter."
+  },
+  {
+    "id": "business-02",
+    "category": "business",
+    "text": "The project plan assigns ownership to the engineering team and schedules the final review for January 15, 2026."
+  },
+  {
+    "id": "business-03",
+    "category": "business",
+    "text": "Revenue increased by 18.5% to $4,500,000, while operating costs remained within the approved budget."
+  },
+  {
+    "id": "business-04",
+    "category": "business",
+    "text": "Please review the attached proposal and send your comments before the leadership meeting on Friday afternoon."
+  },
+  {
+    "id": "business-05",
+    "category": "business",
+    "text": "The revised process should improve handoffs without changing the service levels promised to existing customers."
+  },
+  {
+    "id": "blog-01",
+    "category": "blog",
+    "text": "A clear morning routine can make a busy day feel less fragmented and easier to manage."
+  },
+  {
+    "id": "blog-02",
+    "category": "blog",
+    "text": "Good documentation is not glamorous, but it saves time whenever a teammate needs to understand an unfamiliar decision."
+  },
+  {
+    "id": "blog-03",
+    "category": "blog",
+    "text": "People often start with the perfect plan and then discover that a small, repeatable habit works better."
+  },
+  {
+    "id": "blog-04",
+    "category": "blog",
+    "text": "The best travel memories usually come from leaving enough space in the schedule for an unexpected detour."
+  },
+  {
+    "id": "blog-05",
+    "category": "blog",
+    "text": "Learning a new tool becomes less intimidating when the first goal is simply to complete one useful task."
+  },
+  {
+    "id": "casual-01",
+    "category": "casual",
+    "text": "I was going to finish the report tonight, but the meeting ran long and I still need to check the figures."
+  },
+  {
+    "id": "casual-02",
+    "category": "casual",
+    "text": "That new cafe is quieter than I expected, and the staff were friendly even though the place was busy."
+  },
+  {
+    "id": "casual-03",
+    "category": "casual",
+    "text": "Can you send me the notes when you get a chance? I want to look over them before tomorrow."
+  },
+  {
+    "id": "casual-04",
+    "category": "casual",
+    "text": "We should probably leave a little earlier because traffic on the main road has been unpredictable lately."
+  },
+  {
+    "id": "casual-05",
+    "category": "casual",
+    "text": "I tried the shortcut yesterday and it worked, although the sign near the entrance was easy to miss."
+  },
+  {
+    "id": "technical-01",
+    "category": "technical",
+    "text": "The service exposes a versioned endpoint at https://example.com/api/v1 and returns a JSON response for each request."
+  },
+  {
+    "id": "technical-02",
+    "category": "technical",
+    "text": "The cache uses a  TTL of 300 seconds and removes entries when memory pressure exceeds the configured threshold."
+  },
+  {
+    "id": "technical-03",
+    "category": "technical",
+    "text": "Latency fell from 240 ms to 92 ms after the query planner began using the composite index."
+  },
+  {
+    "id": "technical-04",
+    "category": "technical",
+    "text": "The parser must preserve the code fragment `pip install waitress` and should reject malformed input with status 400."
+  },
+  {
+    "id": "regression-01",
+    "category": "regression",
+    "text": "In order to facilitate the expeditious implementation of project Alpha, the engineering team will convene on January 15, 2026 at https://meet.google.com/xyz-123. Due to the fact that Q3 revenue expanded by 18.5% ($4,500,000), we recieve substantial positive momentum as noted by Smith et al. (2024). teh overall system latency is reduced by 2.4x."
+  },
+  {
+    "id": "citations-01",
+    "category": "citations",
+    "text": "As Smith et al. (2024) explain, the result depends on how the baseline population is defined."
+  },
+  {
+    "id": "citations-02",
+    "category": "citations",
+    "text": "The original finding appears in the archived report [12], which also documents the measurement procedure."
+  },
+  {
+    "id": "citations-03",
+    "category": "citations",
+    "text": "Later work extends the model while retaining the assumptions described by Chen and Patel (2023)."
+  },
+  {
+    "id": "citations-04",
+    "category": "citations",
+    "text": "The review cites evidence from [4] and [9] but notes that both studies used small samples."
+  },
+  {
+    "id": "citations-05",
+    "category": "citations",
+    "text": "The method follows the protocol described in Garcia et al. (2022), with one additional validation step."
+  },
+  {
+    "id": "lists-01",
+    "category": "lists",
+    "text": "- Collect the source files.\n- Confirm the owner.\n- Publish the approved version."
+  },
+  {
+    "id": "lists-02",
+    "category": "lists",
+    "text": "1. Check the request.\n2. Run the validation.\n3. Record the result."
+  },
+  {
+    "id": "lists-03",
+    "category": "lists",
+    "text": "- The first milestone is complete.\n- The second milestone needs review.\n- The final milestone is scheduled."
+  },
+  {
+    "id": "lists-04",
+    "category": "lists",
+    "text": "Priority one is restore service; priority two is identify the cause; priority three is document the fix."
+  },
+  {
+    "id": "lists-05",
+    "category": "lists",
+    "text": "- Keep the original heading.\n- Preserve the links.\n- Update only the explanatory paragraphs."
+  },
+  {
+    "id": "non_english-01",
+    "category": "non_english",
+    "text": "La reunión comenzará a las nueve y el equipo revisará los resultados antes de tomar una decisión."
+  },
+  {
+    "id": "non_english-02",
+    "category": "non_english",
+    "text": "この手順では、入力データを確認してから安全に結果を保存します。"
+  },
+  {
+    "id": "non_english-03",
+    "category": "non_english",
+    "text": "Le rapport présente les résultats principaux et décrit les limites de la méthode utilisée."
+  },
+  {
+    "id": "non_english-04",
+    "category": "non_english",
+    "text": "Die Anwendung verarbeitet die Anfrage und gibt eine klare Fehlermeldung zurück, wenn Daten fehlen."
+  },
+  {
+    "id": "non_english-05",
+    "category": "non_english",
+    "text": "La squadra ha completato la prima fase e preparerà il riepilogo per la riunione di domani."
+  }
+]

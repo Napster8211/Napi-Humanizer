@@ -91,6 +91,34 @@ class OutputValidator:
             key_modifications=modifications,
         )
 
+    def quality_warnings(self, original_text: str, revised_text: str, mode: str, intensity: str) -> List[str]:
+        """Return quality-gate warnings for substantive rewrites.
+
+        Very short edits and Proofread are intentionally excluded because spelling and
+        punctuation fixes should not be forced into an arbitrary rewrite percentage.
+        """
+        original_words = original_text.split()
+        if len(original_words) < 20 or mode == "proofread":
+            return []
+        revised_words = revised_text.split()
+        warnings: List[str] = []
+        if mode not in ("concise", "simplify"):
+            length_ratio = len(revised_words) / max(1, len(original_words))
+            if not 0.70 <= length_ratio <= 1.30:
+                warnings.append(f"Output length ratio {length_ratio:.2f} is outside the safe 0.70–1.30 range.")
+
+        summary = self.compute_change_summary(original_text, revised_text)
+        changed_ratio = (summary.added_words + summary.removed_words) / max(1, len(original_words))
+        bands = {
+            "light": (0.10, 0.25),
+            "balanced": (0.25, 0.50),
+            "substantial": (0.50, 0.75),
+        }
+        low, high = bands.get(intensity, bands["balanced"])
+        if mode not in ("concise", "simplify") and not low <= changed_ratio <= high:
+            warnings.append(f"Changed-word ratio {changed_ratio:.2f} is outside the {intensity} target band.")
+        return warnings
+
 
 # Global validator singleton
 _validator_instance = OutputValidator()

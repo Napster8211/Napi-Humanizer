@@ -196,6 +196,25 @@ class RewriteOrchestrator:
                     provider, prompt, system, masked_target, target, placeholders
                 )
                 warnings.extend(protection_warnings)
+                quality_warnings = self.validator.quality_warnings(
+                    target, revised_target, request.mode.value, request.intensity.value
+                )
+                if quality_warnings and not protection_warnings:
+                    adjusted_system = system + (
+                        "\nQUALITY RETRY: Adjust the rewrite to stay within 70–130% of the "
+                        "original length and match the requested editing intensity. Preserve "
+                        "all protected tokens exactly once. Output only the revised text."
+                    )
+                    retry_target, retry_protection_warnings = self._restore_provider_output(
+                        provider, prompt, adjusted_system, masked_target, target, placeholders
+                    )
+                    retry_quality_warnings = self.validator.quality_warnings(
+                        target, retry_target, request.mode.value, request.intensity.value
+                    )
+                    if not retry_protection_warnings and not retry_quality_warnings:
+                        revised_target = retry_target
+                    else:
+                        warnings.extend(quality_warnings)
             except (ProviderMissingKeyError, ProviderError) as exc:
                 if not request.fallback_to_local or request.mode != EditingMode.PROOFREAD:
                     raise
@@ -243,9 +262,12 @@ class RewriteOrchestrator:
                     # Init identifies the actual provider after lazy construction.
                     yield self._sse("provider", {"provider": provider_name, "model": model_name})
                     chunks: List[str] = []
-                    for chunk in provider.generate_stream(prompt=prompt, system_instruction=system):
-                        if chunk:
-                            chunks.append(chunk)
+                    bounded_chunks = split_for_rewrite(masked_target, max_words=350)
+                    for bounded_chunk in bounded_chunks:
+                        chunk_prompt = self._prompt_for_chunk(prompt, bounded_chunk) if len(bounded_chunks) > 1 else prompt
+                        for chunk in provider.generate_stream(prompt=chunk_prompt, system_instruction=system):
+                            if chunk:
+                                chunks.append(chunk)
                     streamed_target = "".join(chunks)
                     if not streamed_target.strip():
                         raise ProviderError("Provider returned an empty streaming response.")
