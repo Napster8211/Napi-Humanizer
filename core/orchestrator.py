@@ -11,6 +11,12 @@ from core.config import AppConfig, get_config
 from core.errors import ProviderError, ProviderMissingKeyError
 from core.metrics import compute_text_metrics, estimate_tokens_and_cost
 from core.prompt_builder import build_system_instruction, build_user_prompt
+from core.protection import (
+    ProtectedPlaceholder,
+    mask_protected_spans,
+    restore_protected_spans,
+    validate_placeholders,
+)
 from core.schemas import EditingMode, RewriteRequest, RewriteResponse
 from core.validator import OutputValidator, get_validator
 from editing.deterministic_tools import deterministic_tool_rewrite
@@ -63,7 +69,7 @@ class RewriteOrchestrator:
     def _sse(event: str, data: Dict[str, Any]) -> str:
         return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
-    def _request_context(self, request: RewriteRequest) -> Tuple[Dict[str, Any], List[Any], str, str]:
+    def _request_context(self, request: RewriteRequest) -> Tuple[Dict[str, Any], List[Any], List[ProtectedPlaceholder], str, str]:
         self.validator.validate_input(
             request,
             max_chars=self.config.max_input_chars,
@@ -75,14 +81,53 @@ class RewriteOrchestrator:
             spans = [s for s in analysis.protected_spans if s.start >= selection["start"] and s.end <= selection["end"]]
         else:
             spans = analysis.protected_spans
+        target_text, placeholders, prompt_spans = mask_protected_spans(
+            selection["target_text"],
+            spans,
+            source_offset=selection["start"],
+        )
         system = build_system_instruction(request, detected_language=analysis.detected_language)
         prompt = build_user_prompt(
             request,
-            protected_spans=spans,
-            text_to_edit=selection["target_text"],
+            protected_spans=prompt_spans,
+            text_to_edit=target_text,
             document_context=selection["document_context"],
         )
-        return selection, analysis.protected_spans, system, prompt
+        return selection, analysis.protected_spans, placeholders, system, prompt
+
+    @staticmethod
+    def _restore_provider_output(
+        provider: BaseLLMProvider,
+        prompt: str,
+        system: str,
+        masked_target: str,
+        original_target: str,
+        placeholders: List[ProtectedPlaceholder],
+    ) -> Tuple[str, List[str]]:
+        """Validate provider placeholders and retry once before retaining source text."""
+        output = provider.generate(prompt=prompt, system_instruction=system)
+        if not placeholders:
+            return output, []
+        failure = validate_placeholders(output, placeholders)
+        if failure is None:
+            return restore_protected_spans(output, placeholders), []
+
+        strict_system = system + (
+            "\nSTRICT PROTECTION RETRY: The target contains protected tokens. "
+            "Copy every token such as ⟦P1⟧ exactly once and in the same order. "
+            "Do not spell out, delete, duplicate, or move protected tokens."
+        )
+        retry_output = provider.generate(prompt=prompt, system_instruction=strict_system)
+        retry_failure = validate_placeholders(retry_output, placeholders)
+        if retry_failure is None:
+            return restore_protected_spans(retry_output, placeholders), []
+
+        protected_names = ", ".join(item.original for item in placeholders[:5])
+        warning = (
+            "Protected placeholder validation failed; the original target was retained "
+            f"for factual safety ({protected_names})."
+        )
+        return original_target, [warning]
 
     def _reconstruct(self, selection: Dict[str, Any], target: str) -> str:
         if selection["is_selection"]:
@@ -113,7 +158,7 @@ class RewriteOrchestrator:
     def rewrite(self, request: RewriteRequest) -> RewriteResponse:
         start_time = time.perf_counter()
         request_id = str(uuid.uuid4())
-        selection, spans, system, prompt = self._request_context(request)
+        selection, spans, placeholders, system, prompt = self._request_context(request)
         target = selection["target_text"]
         warnings: List[str] = []
         is_fallback = False
@@ -128,7 +173,10 @@ class RewriteOrchestrator:
             try:
                 provider = self.provider
                 provider_name, model_name = provider.provider_name, provider.model
-                revised_target = provider.generate(prompt=prompt, system_instruction=system)
+                revised_target, protection_warnings = self._restore_provider_output(
+                    provider, prompt, system, target, target, placeholders
+                )
+                warnings.extend(protection_warnings)
             except (ProviderMissingKeyError, ProviderError) as exc:
                 if not request.fallback_to_local or request.mode != EditingMode.PROOFREAD:
                     raise
@@ -145,7 +193,7 @@ class RewriteOrchestrator:
         start_time = time.perf_counter()
         request_id = str(uuid.uuid4())
         try:
-            selection, spans, system, prompt = self._request_context(request)
+            selection, spans, placeholders, system, prompt = self._request_context(request)
             target = selection["target_text"]
             provider_name = "deterministic-local"
             model_name = "rule-based-engine"
@@ -179,10 +227,29 @@ class RewriteOrchestrator:
                     for chunk in provider.generate_stream(prompt=prompt, system_instruction=system):
                         if chunk:
                             chunks.append(chunk)
-                            yield self._sse("chunk", {"chunk": chunk})
-                    revised_target = "".join(chunks)
-                    if not revised_target.strip():
+                    streamed_target = "".join(chunks)
+                    if not streamed_target.strip():
                         raise ProviderError("Provider returned an empty streaming response.")
+                    if placeholders:
+                        failure = validate_placeholders(streamed_target, placeholders)
+                        if failure is None:
+                            revised_target = restore_protected_spans(streamed_target, placeholders)
+                        else:
+                            strict_system = system + (
+                                "\nSTRICT PROTECTION RETRY: Copy every protected token such as "
+                                "⟦P1⟧ exactly once and in the same order."
+                            )
+                            retry_target = provider.generate(prompt=prompt, system_instruction=strict_system)
+                            if validate_placeholders(retry_target, placeholders) is None:
+                                revised_target = restore_protected_spans(retry_target, placeholders)
+                            else:
+                                revised_target = target
+                                warnings.append(
+                                    "Protected placeholder validation failed; the original target was retained for factual safety."
+                                )
+                    else:
+                        revised_target = streamed_target
+                    yield self._sse("chunk", {"chunk": revised_target})
                 except (ProviderMissingKeyError, ProviderError) as exc:
                     if not request.fallback_to_local or request.mode != EditingMode.PROOFREAD:
                         yield self._sse("error", {"code": "ProviderError", "message": "The rewrite provider was unavailable."})

@@ -12,6 +12,12 @@ Added focused regression coverage for intact currency, percentages, decimals, mu
 
 Python compilation and `git diff --check` also pass.
 
+## Placeholder pipeline completed
+
+Rewrite requests now replace protected spans with ordered `⟦P1⟧`-style tokens before provider calls. Provider output is checked for exact token count and order. A damaged result receives one stricter protection retry; if that also fails, the original target is retained and a factual-safety warning identifies the protected values. Streaming output is buffered until this validation completes, so placeholder tokens are never exposed to the browser. Valid tokens are restored before the result is returned.
+
+The pipeline is selection-aware and preserves the existing selection reconstruction behavior. New tests cover successful restoration and safe retention after a damaged provider response. The complete suite passes with **78 passed, 2 warnings**; Python compilation, JavaScript syntax validation, and `git diff --check` also pass.
+
 ## Remaining Phase 2 work
 
-The next quality slice should add reversible `⟦P1⟧`-style placeholders around protected spans before provider calls, verify placeholder count and order, retry once with a stricter instruction when a provider damages placeholders, and retain the original affected sentence when validation still fails. Chunking, length/change-ratio quality gates, and the evaluation harness remain open after that protection pipeline is implemented.
+Chunking at paragraph/sentence boundaries, length and changed-word-ratio quality gates, and the 40-sample evaluation harness remain open. These should be added as separate small increments so the provider prompt and factual-safety behavior remain easy to test.
