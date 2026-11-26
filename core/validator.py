@@ -26,15 +26,16 @@ class OutputValidator:
         """Check whether critical protected entities from original text persist in revised text."""
         warnings: List[str] = []
         for span in spans:
-            # Check if entity text appears in revised text
-            # For numbers and dates, exact presence is checked
-            if span.span_type in ("url", "citation", "code", "date", "email"):
+            # Check if the exact protected entity survives. A plain substring check
+            # is too permissive for a value such as "3" appearing inside "30";
+            # word boundaries are too strict for punctuation-bearing values such as
+            # "$4,500,000" and "18.5%". Alphanumeric lookarounds handle both cases.
+            if span.span_type in ("url", "citation", "code", "date", "email", "quotation"):
                 if span.text not in revised_text:
                     warnings.append(f"Protected {span.span_type} may have been altered or omitted: '{span.text}'")
             elif span.span_type == "number":
-                # Check for number with word boundary
                 escaped = re.escape(span.text)
-                if not re.search(r'(?:\b|\A)' + escaped + r'(?:\b|\Z)', revised_text):
+                if not re.search(r'(?<![A-Za-z0-9])' + escaped + r'(?![A-Za-z0-9])', revised_text):
                     warnings.append(f"Protected number may have been altered or omitted: '{span.text}'")
         return warnings
 
