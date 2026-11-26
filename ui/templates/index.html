@@ -91,6 +91,11 @@
 
         <section class="insights-panel" id="metricsPanel" aria-label="Writing insights">
             <div class="insights-heading"><div><p class="eyebrow">Insights</p><h2 id="insightsTitle">Writing signals</h2></div><p id="insightsDisclaimer" class="metrics-disclaimer">Descriptive indicators only. They do not estimate AI authorship.</p></div>
+            <div id="detectorResult" class="detector-result hidden" aria-live="polite">
+                <div class="detector-score"><span class="metric-title">AI-text signal</span><strong id="detectorPercent">0%</strong><span id="detectorStatus" class="metric-desc">Run a scan to review sentence-level signals.</span></div>
+                <div class="detector-copy"><strong>Review flagged passages</strong><p id="detectorMethod">This estimate uses conservative linguistic signals. It is not proof of authorship.</p></div>
+            </div>
+            <div id="detectorHighlights" class="detector-highlights hidden" aria-live="polite"></div>
             <div class="metrics-grid">
                 <div class="metric-card"><span class="metric-title">Reading ease</span><strong class="metric-value" id="valReadingEase">-</strong><span class="metric-desc">Higher is easier to read</span></div>
                 <div class="metric-card"><span class="metric-title">Grade level</span><strong class="metric-value" id="valGradeLevel">-</strong><span class="metric-desc">Approximate reading level</span></div>
@@ -100,7 +105,7 @@
                 <div class="metric-card"><span class="metric-title">Usage</span><strong class="metric-value" id="valTokenCost">-</strong><span class="metric-desc" id="valTokenDetail">No request yet</span></div>
             </div>
             <div id="changeSummaryBox" class="change-summary-box hidden"><h3>What changed</h3><ul id="changeSummaryList"></ul></div>
-            <div id="detectorNotice" class="detector-notice hidden"><strong>About AI Detector</strong><p>These are observable writing patterns, not proof of who wrote the text. No reliable AI probability or authorship verdict is provided.</p></div>
+            <div id="detectorNotice" class="detector-notice hidden"><strong>About AI Detector</strong><p>Scores are signals, not verdicts. This tool highlights passages that match several observable linguistic patterns, but it cannot prove who wrote the text.</p></div>
         </section>
     </main>
 

@@ -22,8 +22,9 @@ def test_detector_uses_descriptive_non_classifier_language():
     template = TEMPLATE.read_text(encoding="utf-8")
     script = SCRIPT.read_text(encoding="utf-8")
     combined = template + script
-    assert "No reliable AI probability" in combined
-    assert "authorship verdict" in combined
+    assert "AI-text signal" in combined
+    assert "not proof of authorship" in combined
+    assert "detectorPercent" in combined
     assert "detectorNotice" in combined
     assert "innerHTML" not in script
 

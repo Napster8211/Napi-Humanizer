@@ -65,3 +65,21 @@ def test_text_metrics_calculation():
     assert metrics.flesch_kincaid_grade > 0
     assert metrics.lexical_diversity > 0.5
     assert "Descriptive writing metrics" in metrics.metric_notice
+
+
+def test_detector_returns_zero_and_insufficient_status_for_short_text():
+    result = DocumentAnalyzer().analyze("This short draft is not long enough for a meaningful detector scan.")
+    assert result.ai_likelihood_percent == 0
+    assert result.detector_status == "insufficient_text"
+
+
+def test_detector_returns_sentence_segments_and_bounded_percentage():
+    text = " ".join([
+        "In conclusion, this report demonstrates a clear result for the project team and provides useful context for the planned work."
+    ] * 6) + " The team reviewed the data and approved the next practical step."
+    result = DocumentAnalyzer().analyze(text)
+    assert result.detector_status == "ready"
+    assert 0 <= result.ai_likelihood_percent <= 100
+    assert len(result.detector_segments) >= 6
+    assert any(segment.flagged for segment in result.detector_segments)
+    assert all(segment.start < segment.end for segment in result.detector_segments)

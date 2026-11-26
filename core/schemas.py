@@ -34,6 +34,16 @@ class ProtectedSpan(BaseModel):
     end: int
 
 
+class DetectorSegment(BaseModel):
+    """Sentence-level detector signal for review, never proof of authorship."""
+    text: str
+    start: int
+    end: int
+    flagged: bool = False
+    signal_score: int = 0
+    reasons: List[str] = Field(default_factory=list)
+
+
 class StyleProfile(BaseModel):
     """User-defined style profile (opt-in and editable)."""
     name: str = "Default"
@@ -131,12 +141,20 @@ class AnalysisRequest(BaseModel):
 
 
 class AnalysisResponse(BaseModel):
-    """Response containing text analysis metrics and protected entities."""
+    """Response containing metrics, protected entities, and transparent detector signals."""
     metrics: TextMetrics
     protected_spans: List[ProtectedSpan]
     paragraphs: int
     sentences: int
     detected_language: str = "en"
+    ai_likelihood_percent: int = Field(default=0, ge=0, le=100)
+    detector_status: str = "ready"
+    detector_method: str = "conservative linguistic-signal estimate"
+    detector_segments: List[DetectorSegment] = Field(default_factory=list)
+    detector_notice: str = (
+        "This is a probabilistic writing signal, not proof of AI authorship. "
+        "Use longer text and human review; formulaic writing can be flagged."
+    )
 
 
 class RewriteResponse(BaseModel):

@@ -88,6 +88,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const insightsTitle = document.getElementById("insightsTitle");
     const insightsDisclaimer = document.getElementById("insightsDisclaimer");
     const detectorNotice = document.getElementById("detectorNotice");
+    const detectorResult = document.getElementById("detectorResult");
+    const detectorPercent = document.getElementById("detectorPercent");
+    const detectorStatus = document.getElementById("detectorStatus");
+    const detectorMethod = document.getElementById("detectorMethod");
+    const detectorHighlights = document.getElementById("detectorHighlights");
 
     const toolDefinitions = {
         humanize: {
@@ -102,10 +107,10 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         detector: {
             title: "Understand your writing patterns.",
-            description: "Review observable structure and readability signals without an authorship verdict.",
+            description: "Review sentence-level AI-likeness signals without treating them as an authorship verdict.",
             action: "Analyze writing",
-            helper: "Analysis is descriptive, not a verdict.",
-            subcopy: "No reliable AI probability or authorship claim is produced.",
+            helper: "Signals help you decide what to review.",
+            subcopy: "The percentage is an estimate, not proof of authorship.",
             mode: "proofread",
             analyze: true,
             insights: "Descriptive writing signals",
@@ -174,7 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
         insightsTitle.textContent = definition.insights;
         detectorNotice.classList.toggle("hidden", activeTool !== "detector");
         insightsDisclaimer.textContent = activeTool === "detector"
-            ? "Descriptive signals only. No reliable AI probability or authorship verdict."
+            ? "Estimated linguistic signal only. It is not proof of AI authorship."
             : "Descriptive indicators only. They do not estimate AI authorship.";
         if (modeSelect && definition.mode) modeSelect.value = definition.mode;
     }
@@ -510,6 +515,44 @@ document.addEventListener("DOMContentLoaded", () => {
         valTokenDetail.textContent = `~$${tokenUsage.estimated_cost_usd.toFixed(4)} USD`;
     }
 
+    function displayDetector(data) {
+        if (!detectorResult || activeTool !== "detector") return;
+        detectorResult.classList.remove("hidden");
+        const percent = Number.isFinite(Number(data.ai_likelihood_percent))
+            ? Math.max(0, Math.min(100, Number(data.ai_likelihood_percent)))
+            : 0;
+        detectorPercent.textContent = `${percent}%`;
+        const status = data.detector_status === "insufficient_text"
+            ? "Add at least 80 words for a more meaningful scan."
+            : percent === 0
+                ? "No passages crossed the conservative signal threshold."
+                : "Some passages matched multiple linguistic signals.";
+        detectorStatus.textContent = status;
+        detectorMethod.textContent = data.detector_notice || "This estimate is not proof of authorship.";
+        detectorHighlights.replaceChildren();
+        const segments = Array.isArray(data.detector_segments) ? data.detector_segments : [];
+        const flagged = segments.filter((segment) => segment.flagged);
+        if (flagged.length === 0) {
+            detectorHighlights.classList.add("hidden");
+            return;
+        }
+        const heading = document.createElement("strong");
+        heading.textContent = "Flagged passages to review";
+        detectorHighlights.appendChild(heading);
+        flagged.forEach((segment) => {
+            const item = document.createElement("div");
+            item.className = "detector-highlight-item";
+            const quote = document.createElement("mark");
+            quote.textContent = segment.text;
+            const reason = document.createElement("span");
+            reason.textContent = (segment.reasons || []).join(" · ");
+            item.appendChild(quote);
+            item.appendChild(reason);
+            detectorHighlights.appendChild(item);
+        });
+        detectorHighlights.classList.remove("hidden");
+    }
+
     // Handle Rewrite Request (Synchronous or SSE Streaming)
     async function handleRewrite() {
         const text = originalText.value;
@@ -704,6 +747,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             displayMetrics(data.metrics);
+            displayDetector(data);
             const spanWarnings = data.protected_spans.map(
                 (s) => `Detected [${s.span_type.toUpperCase()}]: ${s.text}`
             );
@@ -743,6 +787,11 @@ document.addEventListener("DOMContentLoaded", () => {
         updateCounts(originalText, originalCounts);
         updateCounts(revisedText, revisedCounts);
         displayMetrics({ flesch_reading_ease: 0, flesch_kincaid_grade: 0, lexical_diversity: 0, reading_time_minutes: 0 });
+        if (detectorResult) detectorResult.classList.add("hidden");
+        if (detectorHighlights) {
+            detectorHighlights.replaceChildren();
+            detectorHighlights.classList.add("hidden");
+        }
         displayWarnings([]);
         displayChangeSummary(null);
         displayTokenUsage(null);
