@@ -3,7 +3,7 @@
 import os
 import logging
 from flask import Flask, render_template, jsonify
-from core.config import get_config, AppConfig
+from core.config import get_config, AppConfig, APP_VERSION
 from api.routes import api_bp
 from core.document_extractor import MAX_UPLOAD_BYTES
 
@@ -64,7 +64,7 @@ def create_app(config: AppConfig = None) -> Flask:
         return jsonify({
             "status": "healthy",
             "service": "NapsterTec Text Intelligence Engine",
-            "version": "2.0.0",
+            "version": APP_VERSION,
             "config": cfg.safe_dict(),
         }), 200
 

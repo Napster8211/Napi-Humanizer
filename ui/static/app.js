@@ -595,6 +595,13 @@ document.addEventListener("DOMContentLoaded", () => {
         displayWarnings([]);
         setLoading(true);
         abortController = new AbortController();
+        const rewriteTimeout = window.setTimeout(() => {
+            if (abortController && !abortController.signal.aborted) {
+                abortController.abort();
+                setLoading(false);
+                showAlert("The rewrite took too long. Try a shorter selection or try again.", true);
+            }
+        }, 60000);
 
         const payload = {
             text: text,
@@ -611,10 +618,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const useStreaming = streamCheckbox.checked;
 
-        if (useStreaming) {
-            await handleStreamingRewrite(payload);
-        } else {
-            await handleStandardRewrite(payload);
+        try {
+            if (useStreaming) {
+                await handleStreamingRewrite(payload);
+            } else {
+                await handleStandardRewrite(payload);
+            }
+        } finally {
+            window.clearTimeout(rewriteTimeout);
         }
     }
 

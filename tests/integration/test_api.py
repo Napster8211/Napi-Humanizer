@@ -5,6 +5,7 @@ import pytest
 from providers.mock import MockLLMProvider
 from providers.factory import set_provider_override
 from core.errors import ProviderTimeoutError
+from core.config import APP_VERSION
 
 
 def test_api_health(client):
@@ -12,6 +13,7 @@ def test_api_health(client):
     assert response.status_code == 200
     data = response.get_json()
     assert data["status"] == "healthy"
+    assert data["version"] == APP_VERSION
     assert "config" in data
     assert "has_api_key" in data["config"]
     # Ensure raw secret is never present in health output
@@ -21,7 +23,9 @@ def test_api_health(client):
 def test_api_health_alias(client):
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.get_json()["status"] == "healthy"
+    data = response.get_json()
+    assert data["status"] == "healthy"
+    assert data["version"] == APP_VERSION
 
 
 def test_api_modes(client):

@@ -156,12 +156,15 @@ class LLMClient(BaseLLMProvider):
 
     def generate_stream(self, prompt: str, system_instruction: str, temperature: float = 0.3, max_tokens: Optional[int] = None, **kwargs: Any) -> Iterator[str]:
         # Hold the queue slot for the whole stream so free providers cannot be overloaded.
+        deadline = time.monotonic() + self.timeout_seconds
         acquired = self._semaphore.acquire(timeout=self.timeout_seconds)
         if not acquired:
             raise ProviderRateLimitError("LLM concurrency limit reached", status_code=429)
         try:
             last_error: Optional[Exception] = None
             for model in self._model_chain():
+                if time.monotonic() >= deadline:
+                    raise ProviderTimeoutError("The rewrite provider exceeded its overall time limit.")
                 if not self._available(model):
                     continue
                 try:
@@ -169,6 +172,8 @@ class LLMClient(BaseLLMProvider):
                     chunks = provider.generate_stream(prompt=prompt, system_instruction=system_instruction, temperature=temperature, max_tokens=max_tokens, **kwargs)
                     self.model = model
                     for chunk in chunks:
+                        if time.monotonic() >= deadline:
+                            raise ProviderTimeoutError("The rewrite provider exceeded its overall time limit.")
                         yield chunk
                     self._success(model)
                     return

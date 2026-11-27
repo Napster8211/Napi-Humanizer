@@ -4,6 +4,8 @@ import os
 from typing import Optional
 from dataclasses import dataclass, field
 
+APP_VERSION = "2.1.0"
+
 try:
     from dotenv import load_dotenv
     load_dotenv()

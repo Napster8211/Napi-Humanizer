@@ -266,11 +266,12 @@ def list_modes():
 @api_bp.route("/health", methods=["GET"])
 def health_check():
     """System health check and non-sensitive configuration diagnostics."""
+    from core.config import APP_VERSION
     config = current_app.config.get("ENGINE_CONFIG")
     safe_info = config.safe_dict() if config else {}
     return jsonify({
         "status": "healthy",
         "service": "NapsterTec Text Intelligence Engine",
-        "version": "2.0.0",
+        "version": APP_VERSION,
         "config": safe_info,
     }), 200
