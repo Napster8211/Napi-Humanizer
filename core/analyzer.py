@@ -15,7 +15,7 @@ class DocumentAnalyzer:
     CODE_BLOCK_REGEX = re.compile(r'```[\s\S]*?```|`[^`\n]+`')
     CITATION_REGEX = re.compile(r'\[(?:\d+|[A-Za-z\s]+,\s*\d{4})\]|\([A-Za-z\s]+(?:et\s+al\.)?,\s*\d{4}[^)]*\)')
     NUMBER_PERCENT_REGEX = re.compile(
-        r'(?:[\$€£¥])?\d+(?:,\d{3})*(?:\.\d+)?(?:%|(?:x|k|m|b)\b|\b)',
+        r'(?<![A-Za-z])(?:[\$€£¥])?\d+(?:,\d{3})*(?:\.\d+)?(?:%|(?:x|k|m|b)\b|\b)',
         re.IGNORECASE
     )
     DATE_REGEX = re.compile(
@@ -42,9 +42,12 @@ class DocumentAnalyzer:
         def add_matches(pattern: re.Pattern, span_type: str):
             for match in pattern.finditer(text):
                 start, end = match.span()
+                if span_type == "url":
+                    while end > start and text[end - 1] in ".,;:!?":
+                        end -= 1
                 if not is_overlapping(start, end):
                     spans.append(ProtectedSpan(
-                        text=match.group(0),
+                        text=text[start:end],
                         span_type=span_type,
                         start=start,
                         end=end

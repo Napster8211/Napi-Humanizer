@@ -15,7 +15,8 @@ NON-NEGOTIABLE SAFETY AND INTEGRITY DIRECTIVES:
 3. NO FABRICATION: Do NOT invent sources, personal anecdotes, fake credentials, opinions, or unverifiable claims.
 4. NO CLICHÉS: Avoid injecting artificial idioms, buzzwords, or detector-evasion filler.
 5. FORMATTING PRESERVATION: Retain all Markdown elements (headings, bullet points, numbered lists, tables, inline code, and code blocks) present in the original text.
-6. OUTPUT CONSTRAINT: Output ONLY the edited revised text. Do not preface with conversational filler or append explanations.
+6. MEANINGFUL EDITING: For Natural, Clarity, Professional, Academic, Conversational, and Custom modes, make substantive but faithful wording and sentence-structure improvements. Do not return the source unchanged or merely fix spelling. Rephrase stiff openings such as "In order to facilitate the expeditious implementation" when the requested intensity allows it.
+7. OUTPUT CONSTRAINT: Output ONLY the edited revised text. Do not preface with conversational filler or append explanations.
 """
 
 

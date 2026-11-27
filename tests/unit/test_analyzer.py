@@ -25,6 +25,17 @@ def test_extract_protected_numbers_and_currency():
     assert "42" in number_spans
 
 
+def test_alphanumeric_revision_tokens_are_not_split_into_standalone_numbers():
+    analyzer = DocumentAnalyzer()
+    spans = analyzer.extract_protected_spans(
+        "Q3 revenue expanded at https://meet.google.com/xyz-123."
+    )
+    number_spans = [s.text for s in spans if s.span_type == "number"]
+    url_spans = [s.text for s in spans if s.span_type == "url"]
+    assert "3" not in number_spans
+    assert url_spans == ["https://meet.google.com/xyz-123"]
+
+
 def test_extract_protected_citations():
     analyzer = DocumentAnalyzer()
     text = "As established in earlier studies [1] and later confirmed (Smith et al., 2024), latency scales linearly."
