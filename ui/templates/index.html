@@ -21,6 +21,7 @@
                 <span class="env-badge" id="envBadge"><span class="badge-dot"></span><span id="envStatusText">Ready</span></span>
                 <button type="button" id="historyModalBtn" class="text-button">History <span id="historyCount">0</span></button>
                 <button type="button" id="styleProfileBtn" class="text-button">Style profile</button>
+                <button type="button" id="themeToggle" class="icon-button" aria-label="Switch theme" aria-pressed="false"><span class="theme-symbol" aria-hidden="true"></span><span class="theme-label">Theme</span></button>
             </div>
         </div>
     </header>
@@ -36,12 +37,12 @@
         </section>
 
         <nav class="tool-nav" aria-label="Writing tools" role="tablist">
-            <button type="button" class="tool-tab active" data-tool="humanize" role="tab" aria-selected="true"><span class="tool-icon">Aa</span><span>Humanize</span></button>
-            <button type="button" class="tool-tab" data-tool="detector" role="tab" aria-selected="false"><span class="tool-icon">◎</span><span>AI Detector</span></button>
-            <button type="button" class="tool-tab" data-tool="grammar" role="tab" aria-selected="false"><span class="tool-icon">✓</span><span>Grammar</span></button>
-            <button type="button" class="tool-tab" data-tool="summarizer" role="tab" aria-selected="false"><span class="tool-icon">≡</span><span>Summarizer</span></button>
-            <button type="button" class="tool-tab" data-tool="tone" role="tab" aria-selected="false"><span class="tool-icon">↗</span><span>Tone changer</span></button>
-            <button type="button" class="tool-tab" data-tool="readability" role="tab" aria-selected="false"><span class="tool-icon">▥</span><span>Readability</span></button>
+            <button type="button" class="tool-tab active" data-tool="humanize" role="tab" aria-selected="true"><span class="tool-icon">H</span><span>Humanize</span></button>
+            <button type="button" class="tool-tab" data-tool="detector" role="tab" aria-selected="false"><span class="tool-icon">D</span><span>AI Detector</span></button>
+            <button type="button" class="tool-tab" data-tool="grammar" role="tab" aria-selected="false"><span class="tool-icon">G</span><span>Grammar</span></button>
+            <button type="button" class="tool-tab" data-tool="summarizer" role="tab" aria-selected="false"><span class="tool-icon">S</span><span>Summarizer</span></button>
+            <button type="button" class="tool-tab" data-tool="tone" role="tab" aria-selected="false"><span class="tool-icon">T</span><span>Tone changer</span></button>
+            <button type="button" class="tool-tab" data-tool="readability" role="tab" aria-selected="false"><span class="tool-icon">R</span><span>Readability</span></button>
         </nav>
 
         <div id="alertBox" class="alert-box hidden" role="alert"><span id="alertIcon" class="alert-icon">!</span><span id="alertMessage" class="alert-message"></span><button type="button" id="alertCloseBtn" class="alert-close" aria-label="Close alert">×</button></div>
@@ -57,14 +58,18 @@
             </div>
             <p id="uploadStatus" class="upload-status" role="status">Supported: TXT, MD, DOCX, PDF · up to 8 MB · uploads are not stored.</p>
 
+            <div class="mobile-pane-tabs" role="tablist" aria-label="Editor panes">
+                <button type="button" class="pane-tab active" data-pane="original" role="tab" aria-selected="true">Original</button>
+                <button type="button" class="pane-tab" data-pane="result" role="tab" aria-selected="false">Result</button>
+            </div>
             <div class="editor-grid">
-                <div class="editor-pane">
+                <div class="editor-pane original-pane">
                     <div class="pane-header"><div><h2>Original text</h2><span id="originalCounts" class="counts-badge">0 words · 0 chars</span></div><span id="detectedLangBadge" class="lang-badge">EN</span></div>
                     <textarea id="originalText" class="editor-textarea" placeholder="Paste or type your draft here…" maxlength="{{ max_input_chars }}" aria-label="Original text"></textarea>
                     <p class="editor-tip">Tip: select a sentence to edit only that part.</p>
                 </div>
-                <div class="editor-divider" aria-hidden="true">→</div>
-                <div class="editor-pane output-pane">
+                <div class="editor-divider" aria-hidden="true"><span></span></div>
+                <div class="editor-pane output-pane" aria-hidden="false">
                     <div class="pane-header"><div><h2>Result</h2><span id="revisedCounts" class="counts-badge">0 words · 0 chars</span></div><div class="pane-actions"><button type="button" id="copyBtn" class="quiet-button">Copy</button><button type="button" id="exportTxtBtn" class="quiet-button">Export</button><button type="button" id="exportMdBtn" class="hidden">Export markdown</button></div></div>
                     <textarea id="revisedText" class="editor-textarea" placeholder="Your result will appear here…" readonly aria-label="Revised text"></textarea>
                     <p class="editor-tip output-tip">Your original draft stays on the left for comparison.</p>
@@ -73,7 +78,7 @@
 
             <div class="action-bar">
                 <div class="primary-action-copy"><strong id="actionHelper">Ready when you are.</strong><span id="actionSubcopy">Your text is processed with your selected tool.</span></div>
-                <div class="action-buttons"><button type="button" id="cancelBtn" class="btn btn-secondary hidden">Cancel</button><button type="button" id="analyzeBtn" class="btn btn-secondary">Analyze writing</button><button type="button" id="refineBtn" class="btn btn-primary"><span id="refineBtnSpinner" class="spinner hidden"></span><span id="refineBtnText">Humanize text</span></button></div>
+                <div class="action-buttons"><button type="button" id="cancelBtn" class="btn btn-secondary hidden">Cancel</button><button type="button" id="analyzeBtn" class="btn btn-secondary">Analyze writing</button><button type="button" id="refineBtn" class="btn btn-primary"><span id="refineBtnSpinner" class="spinner hidden"></span><span id="refineBtnText">Humanize</span></button></div>
             </div>
         </section>
 

@@ -57,6 +57,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const changeSummaryBox = document.getElementById("changeSummaryBox");
     const changeSummaryList = document.getElementById("changeSummaryList");
     const envStatusText = document.getElementById("envStatusText");
+    const themeToggle = document.getElementById("themeToggle");
+    const paneTabs = document.querySelectorAll(".pane-tab");
+    const originalPane = document.querySelector(".original-pane");
+    const outputPane = document.querySelector(".output-pane");
 
     // Modals
     const styleProfileBtn = document.getElementById("styleProfileBtn");
@@ -96,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
         humanize: {
             title: "Make your draft clearer.",
             description: "Polish wording, improve flow, and keep your meaning intact.",
-            action: "Humanize text",
+            action: "Humanize",
             helper: "Ready when you are.",
             subcopy: "Your text is processed with your selected tool.",
             mode: "natural",
@@ -158,6 +162,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let abortController = null;
     let activeSelectionRange = null;
+
+    function setTheme(theme) {
+        const nextTheme = theme === "dark" ? "dark" : "light";
+        document.documentElement.dataset.theme = nextTheme;
+        if (themeToggle) {
+            themeToggle.setAttribute("aria-pressed", nextTheme === "dark" ? "true" : "false");
+            themeToggle.setAttribute("aria-label", `Switch to ${nextTheme === "dark" ? "light" : "dark"} theme`);
+        }
+        localStorage.setItem("napstertec_theme", nextTheme);
+    }
+
+    const savedTheme = localStorage.getItem("napstertec_theme");
+    setTheme(savedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+    themeToggle?.addEventListener("click", () => {
+        setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+    });
+
+    function setPane(pane) {
+        const showResult = pane === "result";
+        paneTabs.forEach((tab) => {
+            const selected = tab.dataset.pane === pane;
+            tab.classList.toggle("active", selected);
+            tab.setAttribute("aria-selected", selected ? "true" : "false");
+        });
+        if (originalPane) originalPane.classList.toggle("mobile-visible", !showResult);
+        if (outputPane) outputPane.classList.toggle("mobile-visible", showResult);
+    }
+
+    paneTabs.forEach((tab) => tab.addEventListener("click", () => setPane(tab.dataset.pane)));
+    setPane("original");
+
+    function showResultPane() {
+        setPane("result");
+        if (window.matchMedia("(max-width: 700px)").matches) {
+            document.querySelector(".mobile-pane-tabs")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+    }
 
     function setActiveTool(toolId) {
         const definition = toolDefinitions[toolId] || toolDefinitions.humanize;
@@ -386,6 +427,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateCounts(originalText, originalCounts);
         activeSelectionRange = null;
         selectionBanner.classList.add("hidden");
+        setPane("original");
     });
     revisedText.addEventListener("input", () => updateCounts(revisedText, revisedCounts));
 
@@ -457,7 +499,7 @@ document.addEventListener("DOMContentLoaded", () => {
         valDiversity.textContent = (metrics.lexical_diversity * 100).toFixed(1) + "%";
         valReadingTime.textContent = metrics.reading_time_minutes.toFixed(2) + " min";
         if (metrics.detected_language) {
-            detectedLangBadge.textContent = `Lang: ${metrics.detected_language.toUpperCase()}`;
+            detectedLangBadge.textContent = metrics.detected_language.toUpperCase();
         }
     }
 
@@ -599,6 +641,7 @@ document.addEventListener("DOMContentLoaded", () => {
             displayMetrics(data.metrics);
             displayWarnings(data.warnings);
             displayChangeSummary(data.change_summary);
+            showResultPane();
 
             saveHistoryItem(data);
 
@@ -669,6 +712,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         displayMetrics(dataJson.metrics);
                         displayWarnings(dataJson.warnings);
                         displayChangeSummary(dataJson.change_summary);
+                        showResultPane();
                         saveHistoryItem(dataJson);
 
                         if (dataJson.is_fallback) {
